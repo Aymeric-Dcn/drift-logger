@@ -22,6 +22,8 @@ import sys
 import numpy as np
 import pandas as pd
 
+import technique
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 SESS_DIR = os.path.join(HERE, "sessions")
 TRACK_DIR = os.path.join(HERE, "tracks")
@@ -97,8 +99,12 @@ def detect_events(df):
     for grp in group_times(list(df.index[df["g"] > IMPACT_G]), 90):
         i = grp[int(np.argmax(df.loc[grp, "g"].values))]
         w = df[(df.time_s > t[i] - 1.5) & (df.time_s <= t[i])]
+        before = df[(df.time_s > t[i] - 0.4) & (df.time_s < t[i] - 0.1)].speed_kmh.mean()
+        after = df[(df.time_s > t[i] + 0.3) & (df.time_s < t[i] + 0.7)].speed_kmh.mean()
+        loss = before - after if not (np.isnan(before) or np.isnan(after)) else 99.0
         e = point(df, i)
         e.update({"type": "impact", "kind": "drift" if w["beta"].abs().max() > 15 else "grip",
+                  "loss": round(float(loss), 0),
                   "speed": round(float(w.speed_kmh.iloc[0]), 0), "g": round(float(df.g[i]), 1),
                   "throttle": round(float(w.throttle.mean()), 2)})
         ev.append(e)
@@ -169,7 +175,7 @@ def countersteer_delays(df):
     return out
 
 
-def find_drifts(df, events, stabs):
+def find_drifts(df, stabs):
     m, t = df.drifting.values, df.time_s.values
     res, start = [], None
     for i, v in enumerate(list(m) + [False]):
@@ -179,14 +185,6 @@ def find_drifts(df, events, stabs):
             end = min(i, len(df) - 1)
             if t[end] - t[start] >= DRIFT_MIN_DUR:
                 w = df.iloc[start:end + 1]
-                outcome = "clean"
-                for e in events:
-                    if t[start] - 0.2 <= e["t"] <= t[end] + 1.2:
-                        if e["type"] == "impact":
-                            outcome = "impact"
-                            break
-                        if e["type"] == "spin":
-                            outcome = "spin"
                 res.append({"t0": round(float(t[start]), 2), "t1": round(float(t[end]), 2),
                             "pos0": round(float(df.track_pos.values[start]), 5),
                             "pos1": round(float(df.track_pos.values[end]), 5),
@@ -197,8 +195,7 @@ def find_drifts(df, events, stabs):
                             "avg_angle": round(float(w.beta.abs().mean()), 0),
                             "throttle": round(float(w.throttle.mean()), 2),
                             "lift_pct": round(float((w.throttle < LIFT_THR).mean() * 100), 0),
-                            "stabs": sum(1 for p in stabs if t[start] <= p["t"] <= t[end]),
-                            "outcome": outcome})
+                            "stabs": sum(1 for p in stabs if t[start] <= p["t"] <= t[end])})
             start = None
     return res
 
@@ -268,7 +265,10 @@ def summarize(sid, meta, df, ev, dr, cs, stabs):
         return sum(1 for e in ev if e["type"] == typ and (kind is None or e.get("kind") == kind))
 
     delays = [c["delay"] for c in cs]
-    clean = sum(1 for d in dr if d["outcome"] == "clean")
+    clean = sum(1 for d in dr if d["success"])
+    techs = {}
+    for d in dr:
+        techs[d["technique"]] = techs.get(d["technique"], 0) + 1
     bands = {name: round(float(((dd.throttle >= lo) & (dd.throttle < hi)).mean() * 100), 1) if len(dd) else None
              for name, lo, hi in THROTTLE_BANDS}
     n_stab_drift = sum(1 for p in stabs if p["drift"])
@@ -278,6 +278,9 @@ def summarize(sid, meta, df, ev, dr, cs, stabs):
         "duration_s": round(float(df.time_s.iloc[-1]), 0), "distance_km": round(km, 2),
         "track_cover": round(float(df.track_pos.max() - df.track_pos.min()), 3),
         "drifts": len(dr), "clean_pct": round(100.0 * clean / len(dr), 0) if dr else None,
+        "avg_score": round(float(np.mean([d["score"] for d in dr])), 0) if dr else None,
+        "exit_touches": sum(1 for d in dr if d["outcome"] == "exit_touch"),
+        "techniques": techs,
         "drift_time_pct": round(float(df.drifting.mean() * 100), 1),
         "avg_angle": round(float(dd.beta.abs().mean()), 1) if len(dd) else None,
         "avg_entry": round(float(np.mean([d["entry"] for d in dr])), 0) if dr else None,
@@ -288,6 +291,7 @@ def summarize(sid, meta, df, ev, dr, cs, stabs):
         "cs_delay": round(float(np.median(delays)), 2) if delays else None,
         "cs_late": sum(1 for x in delays if x > 0.5),
         "impacts": count("impact"), "impacts_grip": count("impact", "grip"), "impacts_drift": count("impact", "drift"),
+        "impacts_heavy": sum(1 for e in ev if e["type"] == "impact" and e.get("loss", 99) > 10),
         "spins": count("spin"), "locks": count("lock"), "lifts": count("lift"),
         "impacts_per_km": round(count("impact") / km, 2) if km > 0.05 else None,
         "max_speed": round(float(df.speed_kmh.max()), 0),
@@ -351,8 +355,8 @@ def analyse_file(path):
     sid = os.path.basename(path)[:15]
     ev = detect_events(df)
     stabs = throttle_stabs(df)
-    dr = find_drifts(df, ev, stabs)
     cs = countersteer_delays(df)
+    dr = technique.analyse_drifts(df, find_drifts(df, stabs), ev, cs)
     return {"summary": summarize(sid, meta, df, ev, dr, cs, stabs), "events": ev, "drifts": dr,
             "countersteer": cs, "stabs": stabs, "corners": detect_corners(df),
             "trace": downsample(df), "file": os.path.basename(path)}

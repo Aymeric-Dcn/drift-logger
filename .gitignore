@@ -7,3 +7,4 @@ drift_logger/analysis/tracks/
 drift_logger/analysis/history.json
 drift_logger/analysis/coaching.json
 drift_logger/analysis/dashboard.html
+drift_logger/analysis/report.json
