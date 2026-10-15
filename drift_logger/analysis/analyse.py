@@ -36,8 +36,10 @@ IMPACT_G = 3.5            # g: wall contact
 LIFT_THR = 0.05           # throttle below this = foot off
 LOCK_RPM = 1500           # rpm collapse in gear = rear wheels locked
 CS_ONSET = 15.0           # deg: rear stepping out, start of counter-steer timing
+PUMP_WINDOW = 0.35        # s: full-on <-> full-off within this = a throttle stab
 CORNER_RADIUS = 90.0      # m: max path radius to count as a corner
 CORNER_MIN_LEN = 12.0     # m
+THROTTLE_BANDS = [("off", 0.0, 0.05), ("low", 0.05, 0.40), ("mid", 0.40, 0.90), ("full", 0.90, 1.01)]
 
 
 def load_csv(path):
@@ -130,6 +132,19 @@ def detect_events(df):
     return ev
 
 
+def throttle_stabs(df):
+    """Full-on <-> full-off throttle swings completed within PUMP_WINDOW seconds."""
+    thr, t, dr = df.throttle.values, df.time_s.values, df.drifting.values
+    out, state = [], None
+    for i in range(len(df)):
+        s = "on" if thr[i] > 0.85 else ("off" if thr[i] < 0.1 else None)
+        if s:
+            if state and s != state[0] and t[i] - state[1] < PUMP_WINDOW:
+                out.append({"t": round(float(t[i]), 2), "drift": bool(dr[i]), "to": s})
+            state = (s, t[i])
+    return out
+
+
 def countersteer_delays(df):
     """Time between the rear stepping out (|slip| > 15 deg) and opposite lock."""
     b, s, t, v = df.beta.values, df.steer_deg.values, df.time_s.values, df.speed_kmh.values
@@ -154,7 +169,7 @@ def countersteer_delays(df):
     return out
 
 
-def find_drifts(df, events):
+def find_drifts(df, events, stabs):
     m, t = df.drifting.values, df.time_s.values
     res, start = [], None
     for i, v in enumerate(list(m) + [False]):
@@ -182,6 +197,7 @@ def find_drifts(df, events):
                             "avg_angle": round(float(w.beta.abs().mean()), 0),
                             "throttle": round(float(w.throttle.mean()), 2),
                             "lift_pct": round(float((w.throttle < LIFT_THR).mean() * 100), 0),
+                            "stabs": sum(1 for p in stabs if t[start] <= p["t"] <= t[end]),
                             "outcome": outcome})
             start = None
     return res
@@ -242,15 +258,20 @@ def downsample(df, hz=10):
             "rpm": s.rpm.round(-1).tolist(), "seg": s.segment.astype(int).tolist()}
 
 
-def summarize(sid, meta, df, ev, dr, cs):
+def summarize(sid, meta, df, ev, dr, cs, stabs):
     km = df.dist.iloc[-1] / 1000.0
     dd = df[df.drifting]
+    drift_min = len(dd) / max(len(df), 1) * df.time_s.iloc[-1] / 60.0
+    grip_min = df.time_s.iloc[-1] / 60.0 - drift_min
 
     def count(typ, kind=None):
         return sum(1 for e in ev if e["type"] == typ and (kind is None or e.get("kind") == kind))
 
     delays = [c["delay"] for c in cs]
     clean = sum(1 for d in dr if d["outcome"] == "clean")
+    bands = {name: round(float(((dd.throttle >= lo) & (dd.throttle < hi)).mean() * 100), 1) if len(dd) else None
+             for name, lo, hi in THROTTLE_BANDS}
+    n_stab_drift = sum(1 for p in stabs if p["drift"])
     return {
         "id": sid, "car": meta.get("car", "?"), "track": meta.get("track", "?"),
         "date": "%s-%s-%s %s:%s" % (sid[:4], sid[4:6], sid[6:8], sid[9:11], sid[11:13]),
@@ -260,7 +281,10 @@ def summarize(sid, meta, df, ev, dr, cs):
         "drift_time_pct": round(float(df.drifting.mean() * 100), 1),
         "avg_angle": round(float(dd.beta.abs().mean()), 1) if len(dd) else None,
         "avg_entry": round(float(np.mean([d["entry"] for d in dr])), 0) if dr else None,
-        "lift_pct": round(float((dd.throttle < LIFT_THR).mean() * 100), 1) if len(dd) else None,
+        "lift_pct": bands["off"],
+        "thr_bands": bands,
+        "stabs_per_min": round(n_stab_drift / drift_min, 1) if drift_min > 0.05 else None,
+        "stabs_per_min_grip": round((len(stabs) - n_stab_drift) / grip_min, 1) if grip_min > 0.05 else None,
         "cs_delay": round(float(np.median(delays)), 2) if delays else None,
         "cs_late": sum(1 for x in delays if x > 0.5),
         "impacts": count("impact"), "impacts_grip": count("impact", "grip"), "impacts_drift": count("impact", "drift"),
@@ -326,10 +350,11 @@ def analyse_file(path):
     df = prepare(df)
     sid = os.path.basename(path)[:15]
     ev = detect_events(df)
-    dr = find_drifts(df, ev)
+    stabs = throttle_stabs(df)
+    dr = find_drifts(df, ev, stabs)
     cs = countersteer_delays(df)
-    return {"summary": summarize(sid, meta, df, ev, dr, cs), "events": ev, "drifts": dr,
-            "countersteer": cs, "corners": detect_corners(df),
+    return {"summary": summarize(sid, meta, df, ev, dr, cs, stabs), "events": ev, "drifts": dr,
+            "countersteer": cs, "stabs": stabs, "corners": detect_corners(df),
             "trace": downsample(df), "file": os.path.basename(path)}
 
 
