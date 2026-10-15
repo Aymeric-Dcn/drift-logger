@@ -1,0 +1,628 @@
+<title>Drift Logger</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a race engineer's desk. Session band on top, coaching, road map next to the corner list, run traces and history below. */
+:root {
+  --bg: #eef1f5;
+  --surface: #fbfcfd;
+  --ink: #0f1620;
+  --ink-2: #4c5766;
+  --muted: #7d8794;
+  --hair: #dce1e8;
+  --axis: #c3cad4;
+  --accent: #1d5fbf;
+  --accent-wash: #e3ecf8;
+  --good: #0a7d2c;
+  --crit: #d03b3b;
+  --serious: #ec835a;
+  --warn: #fab219;
+  --a0: #b9c1cc; --a1: #86b6ef; --a2: #3987e5; --a3: #1c5cab; --a4: #0d366b;
+  --display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1218; --surface: #141b24; --ink: #e8edf3; --ink-2: #b2bccb; --muted: #7f8a99;
+    --hair: #243040; --axis: #34404f; --accent: #5b98ec; --accent-wash: #1a2a40; --good: #2fbf5a;
+    --a0: #3e4856; --a1: #1c5cab; --a2: #2a78d6; --a3: #5598e7; --a4: #9ec5f4;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1218; --surface: #141b24; --ink: #e8edf3; --ink-2: #b2bccb; --muted: #7f8a99;
+  --hair: #243040; --axis: #34404f; --accent: #5b98ec; --accent-wash: #1a2a40; --good: #2fbf5a;
+  --a0: #3e4856; --a1: #1c5cab; --a2: #2a78d6; --a3: #5598e7; --a4: #9ec5f4;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; }
+.wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: .01em; margin: 0; text-wrap: balance; }
+h1 { font-size: 34px; line-height: 1; font-weight: 700; }
+h2 { font-size: 21px; line-height: 1.1; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.note { font-size: 12.5px; color: var(--muted); }
+
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px; }
+.brand { display: flex; flex-direction: column; gap: 4px; }
+.brand .sub { color: var(--ink-2); }
+.filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.field label, .field .lbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+select { font: 500 13.5px var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--hair); border-radius: 6px; padding: 7px 28px 7px 10px; max-width: 280px; }
+select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.seg { display: inline-flex; border: 1px solid var(--hair); border-radius: 7px; overflow: hidden; background: var(--surface); }
+.seg button { font: 500 12.5px var(--body); color: var(--ink-2); background: transparent; border: 0; padding: 7px 11px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--accent-wash); color: var(--accent); }
+.seg button + button { border-left: 1px solid var(--hair); }
+
+.session-band { background: var(--surface); border: 1px solid var(--hair); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+.session-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; }
+.session-meta h2 { font-size: 24px; }
+.kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); border-top: 1px solid var(--hair); }
+.kpi { padding: 12px 14px 4px 0; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.kpi + .kpi { padding-left: 14px; border-left: 1px solid var(--hair); }
+.kpi .v { font-family: var(--display); font-size: 30px; font-weight: 600; line-height: 1.05; }
+.kpi .v small { font-size: 16px; color: var(--ink-2); margin-left: 2px; }
+.kpi .l { font-size: 12.5px; color: var(--ink-2); }
+.delta { font-family: var(--mono); font-size: 11.5px; }
+.delta.up { color: var(--good); } .delta.down { color: var(--crit); } .delta.flat { color: var(--muted); }
+
+.grid-main { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 20px; }
+.panel { background: var(--surface); border: 1px solid var(--hair); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.map-box svg { width: 100%; height: auto; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--ink-2); align-items: center; }
+.legend .ramp { display: inline-flex; align-items: center; gap: 6px; }
+.legend .ramp i { display: inline-block; width: 18px; height: 4px; border-radius: 2px; }
+.legend .sym { display: inline-flex; align-items: center; gap: 5px; }
+
+.corners { display: flex; flex-direction: column; max-height: 560px; overflow-y: auto; margin: 0 -6px; }
+.corner { display: grid; grid-template-columns: 4px 46px minmax(0, 1fr); gap: 10px; align-items: center; padding: 9px 6px; border-bottom: 1px solid var(--hair); border-radius: 4px; }
+.corner:hover, .corner.hl { background: var(--accent-wash); }
+.corner .stripe { align-self: stretch; border-radius: 2px; background: var(--hair); }
+.corner .stripe.s3 { background: var(--crit); } .corner .stripe.s2 { background: var(--serious); } .corner .stripe.s1 { background: var(--warn); }
+.corner .num { font-family: var(--display); font-size: 22px; font-weight: 600; line-height: 1; }
+.corner .desc { font-size: 12.5px; color: var(--ink-2); min-width: 0; display: flex; flex-direction: column; }
+.corner .desc b { color: var(--ink); font-weight: 600; }
+.chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
+.chip { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius: 99px; border: 1px solid var(--hair); color: var(--ink-2); white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.chip .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+
+.coach { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+.coach-card { display: flex; flex-direction: column; gap: 10px; }
+.coach-card .headline { font-family: var(--display); font-size: 24px; font-weight: 600; line-height: 1.1; text-wrap: balance; }
+.coach-card ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; color: var(--ink-2); max-width: 65ch; }
+.issue { border-left: 3px solid var(--serious); padding: 2px 0 2px 12px; display: flex; flex-direction: column; gap: 2px; max-width: 70ch; }
+.issue b { font-weight: 600; }
+.issue span { color: var(--ink-2); font-size: 13.5px; }
+.exercise { background: var(--accent-wash); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.exercise .eyebrow { color: var(--accent); }
+.older { display: flex; flex-direction: column; gap: 8px; }
+.older .row { display: flex; gap: 10px; font-size: 13px; color: var(--ink-2); }
+
+.multiples { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 22px; }
+.mult { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.mult .t { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.mult .t span:first-child { font-size: 13px; font-weight: 500; }
+.mult svg, .strip svg { width: 100%; height: auto; display: block; }
+
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th { font-family: var(--mono); font-weight: 500; font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--axis); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+td { padding: 7px 8px; border-bottom: 1px solid var(--hair); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.table-scroll { overflow-x: auto; }
+.status { display: inline-flex; align-items: center; gap: 5px; }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; }
+.two { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 20px; }
+
+#tip { position: fixed; pointer-events: none; z-index: 50; background: var(--ink); color: var(--surface); font-size: 12px; line-height: 1.45; padding: 7px 9px; border-radius: 6px; max-width: 260px; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+#tip b { font-weight: 600; }
+footer { font-size: 12px; color: var(--muted); }
+
+@media (max-width: 980px) {
+  .grid-main, .coach, .two { grid-template-columns: minmax(0, 1fr); }
+  .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .kpi:nth-child(4) { border-left: 0; padding-left: 0; }
+  .multiples { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .kpi:nth-child(even) { border-left: 1px solid var(--hair); padding-left: 14px; }
+  h1 { font-size: 28px; }
+}
+@media (prefers-reduced-motion: no-preference) { .corner { transition: background .12s; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <span class="eyebrow">Assetto Corsa · 峠 · <span data-i18n="telemetry"></span></span>
+      <h1>Drift Logger</h1>
+      <span class="sub" id="totals"></span>
+    </div>
+    <div class="filters">
+      <div class="field"><label for="f-track" data-i18n="road"></label><select id="f-track"></select></div>
+      <div class="field"><label for="f-car" data-i18n="car"></label><select id="f-car"></select></div>
+      <div class="field"><label for="f-session" data-i18n="session"></label><select id="f-session"></select></div>
+      <div class="field"><span class="lbl" data-i18n="language"></span>
+        <div class="seg" role="group" aria-label="Language"><button id="l-fr">FR</button><button id="l-en">EN</button></div></div>
+    </div>
+  </header>
+
+  <section class="session-band">
+    <div class="session-meta" id="session-meta"></div>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2 data-i18n="coaching"></h2><span class="eyebrow" id="coach-date"></span></div>
+    <div class="coach" id="coach"></div>
+  </section>
+
+  <div class="grid-main">
+    <section class="panel">
+      <div class="panel-head">
+        <h2 data-i18n="mapTitle"></h2>
+        <div class="seg" role="group"><button id="m-session" data-i18n="thisSession"></button><button id="m-cumul" data-i18n="allSessions"></button></div>
+      </div>
+      <div class="map-box" id="map"></div>
+      <div class="legend" id="map-legend"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2 data-i18n="cornersTitle"></h2><span class="eyebrow" id="corner-count"></span></div>
+      <div class="corners" id="corners"></div>
+    </section>
+  </div>
+
+  <section class="panel strip">
+    <div class="panel-head"><h2 data-i18n="runTitle"></h2><span class="note" data-i18n="hoverHint"></span></div>
+    <div id="strip"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2 data-i18n="evoTitle"></h2><span class="note" id="evo-scope"></span></div>
+    <div class="multiples" id="multiples"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2 data-i18n="driftsTitle"></h2><span class="note" id="drift-count"></span></div>
+    <div class="table-scroll"><table id="drifts"></table></div>
+  </section>
+
+  <div class="two">
+    <section class="panel"><h2 data-i18n="byCar"></h2><div class="table-scroll"><table id="by-car"></table></div></section>
+    <section class="panel"><h2 data-i18n="byRoad"></h2><div class="table-scroll"><table id="by-track"></table></div></section>
+  </div>
+
+  <footer id="foot"></footer>
+</div>
+<div id="tip" hidden></div>
+
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function () {
+  const D = JSON.parse(document.getElementById("data").textContent);
+  const $ = (id) => document.getElementById(id);
+  const NS = "http://www.w3.org/2000/svg";
+
+  /* ---------- i18n ---------- */
+  const I18N = {
+    fr: {
+      telemetry: "télémétrie", road: "Route", car: "Voiture", session: "Session", language: "Langue",
+      coaching: "Coaching", mapTitle: "La route, virage par virage", thisSession: "Cette session", allSessions: "Toutes les sessions",
+      cornersTitle: "Virages à travailler",
+      runTitle: "Télémétrie du run", hoverHint: "Survole les courbes pour lire les valeurs", evoTitle: "Évolution d'une session à l'autre",
+      driftsTitle: "Les glisses du run", byCar: "Par voiture", byRoad: "Par route",
+      allRoads: "Toutes les routes", allCars: "Toutes les voitures", noSession: "Aucune session pour ce filtre",
+      totals: (n, km, d) => `${n} session${n > 1 ? "s" : ""} · ${km} km roulés · ${d} glisses analysées`,
+      foot: g => `Mis à jour le ${g}. Données : appli Drift Logger, environ 90 mesures par seconde. Angle de dérive = angle entre l'axe de la voiture et sa trajectoire.`,
+      meta: (min, km, d, cov) => `${min} min · ${km} km · ${d} glisses · ${cov} % de la route`,
+      kpi: { clean_pct: "glisses terminées proprement", avg_angle: "angle moyen en glisse", lift_pct: "du temps en glisse, pied levé", cs_late: "contre-braquages tardifs (> 0,5 s)", impacts: "chocs", spins: "quasi tête-à-queue" },
+      impactsSplit: (g, d) => `${g} en grip · ${d} en glisse`, vsPrev: "vs session préc.", firstHere: "première session ici",
+      prio: "Priorité n° 1", nextEx: "Exercice pour la prochaine session", target: "Objectif", issuesT: "Ce qui coince", older: "Conseils précédents",
+      coachThis: "Conseils de cette session", coachLast: d => "Derniers conseils · " + d, noCoach: "Pas encore de conseils. Après ton prochain run, demande l'analyse.",
+      angle: "Angle de dérive", grip: "grip", deg60: "60° et +", impact: "Choc", spin: "Quasi tête-à-queue", lift: "Pied levé en glisse", lock: "Arrière bloqué",
+      cumulLegend: "Cumul de toutes les sessions sur cette route. Plus le halo est grand, plus le virage pose problème (chocs ×3, tête-à-queue ×2, contre-braquage tardif, arrière bloqué).",
+      pickSession: "Choisis une session pour voir la route.", C: "V", corner: "Virage",
+      kind: { hairpin: "épingle", tight: "serré", fast: "rapide" }, dir: { left: "à gauche", right: "à droite" },
+      cornersFound: n => `${n} virages détectés`,
+      passes: n => `${n} passage${n > 1 ? "s" : ""}`, driftsN: n => `${n} glisse${n > 1 ? "s" : ""}`, avg: "moy.", entry: "entrée",
+      chips: { impacts: n => `${n} choc${n > 1 ? "s" : ""}`, spins: n => `${n} T-À-Q`, late: n => `${n} CB tardif`, lifts: n => `${n} pied levé`, none: "RAS" },
+      cornerTip: c => `${c.impacts} choc · ${c.spins} tête-à-queue · ${c.late_cs} contre-braq. tardif · ${c.lifts} pied levé`,
+      evImpact: k => `Choc ${k === "drift" ? "en glisse" : "en grip"}`, arriving: "arrivée à", revs: "régime à", footOff: "s à 0",
+      rows: ["Angle de dérive", "Accélérateur", "Vitesse"], thr: "gaz", brk: "frein", gear: "rapport", wheel: "volant",
+      evo: { clean_pct: "Glisses propres", lift_pct: "Pied levé en glisse", cs_late: "Contre-braquages tardifs", impacts_per_km: "Chocs par km", spins: "Quasi tête-à-queue", avg_angle: "Angle moyen en glisse" },
+      evoScope: n => n < 2 ? "La courbe se construit à partir de la 2e session" : `${n} sessions`,
+      table: ["Temps", "Virage", "Rapport", "Entrée", "Sortie", "Angle moy.", "Angle max", "Gaz moy.", "Pied levé", "Fin"],
+      outcome: { clean: "propre", impact: "choc", spin: "tête-à-queue" },
+      agg: ["Sessions", "km", "Glisses", "Propres", "Angle moy.", "Chocs/km"],
+      up: "montée", down: "descente", nf: "fr-FR",
+    },
+    en: {
+      telemetry: "telemetry", road: "Road", car: "Car", session: "Session", language: "Language",
+      coaching: "Coaching", mapTitle: "The road, corner by corner", thisSession: "This session", allSessions: "All sessions",
+      cornersTitle: "Corners to work on",
+      runTitle: "Run telemetry", hoverHint: "Hover the traces to read values", evoTitle: "Progress from session to session",
+      driftsTitle: "Drifts in this run", byCar: "By car", byRoad: "By road",
+      allRoads: "All roads", allCars: "All cars", noSession: "No session for this filter",
+      totals: (n, km, d) => `${n} session${n > 1 ? "s" : ""} · ${km} km driven · ${d} drifts analysed`,
+      foot: g => `Updated ${g}. Data: Drift Logger app, about 90 samples per second. Slip angle = angle between the car's axis and its direction of travel.`,
+      meta: (min, km, d, cov) => `${min} min · ${km} km · ${d} drifts · ${cov}% of the road`,
+      kpi: { clean_pct: "drifts finished cleanly", avg_angle: "average drift angle", lift_pct: "of drift time with foot off", cs_late: "late counter-steers (> 0.5 s)", impacts: "wall contacts", spins: "near spins" },
+      impactsSplit: (g, d) => `${g} in grip · ${d} drifting`, vsPrev: "vs prev. session", firstHere: "first session here",
+      prio: "Priority #1", nextEx: "Drill for next session", target: "Target", issuesT: "What's going wrong", older: "Earlier advice",
+      coachThis: "Advice for this session", coachLast: d => "Latest advice · " + d, noCoach: "No advice yet. After your next run, ask for the analysis.",
+      angle: "Slip angle", grip: "grip", deg60: "60° and up", impact: "Wall contact", spin: "Near spin", lift: "Foot off while drifting", lock: "Rear locked",
+      cumulLegend: "All sessions on this road combined. The bigger the halo, the more trouble the corner causes (impacts ×3, spins ×2, late counter-steer, rear lock).",
+      pickSession: "Pick a session to see the road.", C: "C", corner: "Corner",
+      kind: { hairpin: "hairpin", tight: "tight", fast: "fast" }, dir: { left: "left", right: "right" },
+      cornersFound: n => `${n} corners detected`,
+      passes: n => `${n} pass${n > 1 ? "es" : ""}`, driftsN: n => `${n} drift${n > 1 ? "s" : ""}`, avg: "avg", entry: "entry",
+      chips: { impacts: n => `${n} impact${n > 1 ? "s" : ""}`, spins: n => `${n} spin${n > 1 ? "s" : ""}`, late: n => `${n} late CS`, lifts: n => `${n} lift${n > 1 ? "s" : ""}`, none: "OK" },
+      cornerTip: c => `${c.impacts} impact · ${c.spins} spin · ${c.late_cs} late counter-steer · ${c.lifts} lift`,
+      evImpact: k => k === "drift" ? "Impact while drifting" : "Impact in grip", arriving: "arriving at", revs: "revs at", footOff: "s at 0",
+      rows: ["Slip angle", "Throttle", "Speed"], thr: "throttle", brk: "brake", gear: "gear", wheel: "wheel",
+      evo: { clean_pct: "Clean drifts", lift_pct: "Foot off while drifting", cs_late: "Late counter-steers", impacts_per_km: "Impacts per km", spins: "Near spins", avg_angle: "Average drift angle" },
+      evoScope: n => n < 2 ? "Lines start from the 2nd session" : `${n} sessions`,
+      table: ["Time", "Corner", "Gear", "Entry", "Exit", "Avg angle", "Max angle", "Avg throttle", "Foot off", "End"],
+      outcome: { clean: "clean", impact: "impact", spin: "spin" },
+      agg: ["Sessions", "km", "Drifts", "Clean", "Avg angle", "Impacts/km"],
+      up: "uphill", down: "downhill", nf: "en-GB",
+    },
+  };
+  const state = { track: "all", car: "all", session: null, mode: "session", lang: "fr" };
+  try { Object.assign(state, JSON.parse(localStorage.getItem("dl-prefs") || "{}")); } catch (e) {}
+  const L = () => I18N[state.lang] || I18N.fr;
+  const pct = (v, d = 0) => fmt(v, d) + (state.lang === "fr" ? " %" : "%");
+  const fmt = (v, d = 0) => (v === null || v === undefined || Number.isNaN(v)) ? "–" : Number(v).toLocaleString(L().nf, { minimumFractionDigits: d, maximumFractionDigits: d });
+
+  function prettyCar(s) {
+    return s.replace(/^ks_/, "").split("_").map(w => {
+      if (/^mk[ivx]+$/i.test(w)) return w.toUpperCase().replace("MK", "MK ");
+      if (/^(bmw|gt86|rx7|ae86|gt|amg|rs|gtr)$/i.test(w)) return w.toUpperCase();
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    }).join(" ");
+  }
+  function prettyTrack(s) {
+    const parts = s.split("-");
+    const base = parts[0].replace(/_\d{4}$/, "").split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    const lay = parts.slice(1).join(" ").replace(/layout_?/, "").replace(/_/g, " ").trim();
+    const dirs = { uphill: L().up, downhill: L().down };
+    return lay ? base + " · " + (dirs[lay] || lay) : base;
+  }
+
+  const history = D.history.slice().sort((a, b) => a.id.localeCompare(b.id));
+
+  const tip = $("tip");
+  function showTip(html, ev) {
+    tip.innerHTML = html; tip.hidden = false;
+    const r = tip.getBoundingClientRect();
+    let x = ev.clientX + 14, y = ev.clientY + 14;
+    if (x + r.width > window.innerWidth - 8) x = ev.clientX - r.width - 14;
+    if (y + r.height > window.innerHeight - 8) y = ev.clientY - r.height - 14;
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function hideTip() { tip.hidden = true; }
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function txt(parent, x, y, s, attrs) {
+    const t = el("text", Object.assign({ x, y, "font-size": 11, fill: "var(--muted)", "font-family": "IBM Plex Mono, monospace" }, attrs || {}), parent);
+    t.textContent = s; return t;
+  }
+
+  /* ---------- filters ---------- */
+  function filtered() { return history.filter(s => (state.track === "all" || s.track === state.track) && (state.car === "all" || s.car === state.car)); }
+  function fillSelect(id, values, current, labeler, allLabel) {
+    const sel = $(id); sel.innerHTML = "";
+    if (allLabel) { const o = document.createElement("option"); o.value = "all"; o.textContent = allLabel; sel.appendChild(o); }
+    values.forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = labeler(v); sel.appendChild(o); });
+    sel.value = values.includes(current) || (allLabel && current === "all") ? current : (allLabel ? "all" : values[values.length - 1]);
+    return sel.value;
+  }
+  function renderFilters() {
+    state.track = fillSelect("f-track", [...new Set(history.map(s => s.track))], state.track, prettyTrack, L().allRoads);
+    state.car = fillSelect("f-car", [...new Set(history.map(s => s.car))], state.car, prettyCar, L().allCars);
+    const list = filtered().map(s => s.id);
+    if (!list.includes(state.session)) state.session = list[list.length - 1] || null;
+    fillSelect("f-session", list, state.session, id => { const s = history.find(h => h.id === id); return s.date + " · " + prettyCar(s.car); });
+    document.querySelectorAll("[data-i18n]").forEach(n => { n.textContent = L()[n.dataset.i18n]; });
+    document.documentElement.lang = state.lang;
+    $("l-fr").setAttribute("aria-pressed", state.lang === "fr"); $("l-en").setAttribute("aria-pressed", state.lang === "en");
+    $("m-session").setAttribute("aria-pressed", state.mode === "session"); $("m-cumul").setAttribute("aria-pressed", state.mode === "cumul");
+  }
+  function renderTotals() {
+    const km = history.reduce((a, s) => a + s.distance_km, 0), dr = history.reduce((a, s) => a + s.drifts, 0);
+    $("totals").textContent = L().totals(history.length, fmt(km, 1), dr);
+    $("foot").textContent = L().foot(D.generated);
+  }
+
+  /* ---------- session band ---------- */
+  const KPI = [
+    { k: "clean_pct", unit: "%", better: "up" }, { k: "avg_angle", unit: "°", better: null },
+    { k: "lift_pct", unit: "%", better: "down" }, { k: "cs_late", unit: "", better: "down" },
+    { k: "impacts", unit: "", better: "down", sub: s => L().impactsSplit(s.impacts_grip, s.impacts_drift) },
+    { k: "spins", unit: "", better: "down" },
+  ];
+  function prevOf(s) { return history.filter(h => h.id < s.id && h.track === s.track && h.car === s.car).pop(); }
+  function renderBand() {
+    const s = history.find(h => h.id === state.session), meta = $("session-meta"), kp = $("kpis");
+    if (!s) { meta.innerHTML = `<h2>${L().noSession}</h2>`; kp.innerHTML = ""; return; }
+    const prev = prevOf(s);
+    meta.innerHTML = `<h2>${prettyTrack(s.track)}</h2><span>${prettyCar(s.car)}</span>
+      <span class="mono muted">${s.date} · ${L().meta(fmt(s.duration_s / 60, 1), fmt(s.distance_km, 1), s.drifts, fmt(s.track_cover * 100))}</span>`;
+    kp.innerHTML = "";
+    KPI.forEach(c => {
+      const v = s[c.k]; let delta = "";
+      if (prev && prev[c.k] !== null && v !== null) {
+        const dv = v - prev[c.k];
+        const good = c.better === null ? null : (c.better === "up" ? dv > 0 : dv < 0);
+        const cls = dv === 0 || good === null ? "flat" : (good ? "up" : "down");
+        delta = `<span class="delta ${cls}">${dv > 0 ? "▲" : dv < 0 ? "▼" : "="} ${fmt(Math.abs(dv))}${c.unit} ${L().vsPrev}</span>`;
+      } else if (!c.sub) delta = `<span class="delta flat">${L().firstHere}</span>`;
+      if (c.sub) delta += `<span class="delta flat">${c.sub(s)}</span>`;
+      const div = document.createElement("div"); div.className = "kpi";
+      div.innerHTML = `<span class="v">${fmt(v)}<small>${c.unit}</small></span><span class="l">${L().kpi[c.k]}</span>${delta}`;
+      kp.appendChild(div);
+    });
+  }
+
+  /* ---------- coaching ---------- */
+  function renderCoach() {
+    const box = $("coach"); box.innerHTML = "";
+    const entries = D.coaching.slice().sort((a, b) => b.session.localeCompare(a.session));
+    const cur = entries.find(e => e.session === state.session) || entries[0];
+    if (!cur) { box.innerHTML = `<p class="note">${L().noCoach}</p>`; $("coach-date").textContent = ""; return; }
+    const c = cur[state.lang] || cur.fr;
+    $("coach-date").textContent = cur.session === state.session ? L().coachThis : L().coachLast(cur.date);
+    const left = document.createElement("div"); left.className = "coach-card";
+    left.innerHTML = `<span class="eyebrow">${L().prio}</span><div class="headline">${c.headline}</div>
+      <ul>${c.good.map(g => `<li>${g}</li>`).join("")}</ul>
+      <div class="exercise"><span class="eyebrow">${L().nextEx}</span><span>${c.exercise}</span><span class="muted">${L().target}${state.lang === "fr" ? " : " : ": "}${c.target}</span></div>`;
+    const right = document.createElement("div"); right.className = "coach-card";
+    right.innerHTML = `<span class="eyebrow">${L().issuesT}</span>` + c.issues.map(i => `<div class="issue"><b>${i.title}</b><span>${i.detail}</span></div>`).join("");
+    const older = entries.filter(e => e !== cur);
+    if (older.length) right.innerHTML += `<span class="eyebrow">${L().older}</span><div class="older">${older.map(o => `<div class="row"><span class="mono">${o.date}</span><span>${(o[state.lang] || o.fr).headline}</span></div>`).join("")}</div>`;
+    box.append(left, right);
+  }
+
+  /* ---------- map ---------- */
+  const STATUS = { impact: "var(--crit)", spin: "var(--serious)", lift: "var(--warn)", lock: "var(--warn)" };
+  const BINS = [[0, 12, "--a0"], [12, 25, "--a1"], [25, 40, "--a2"], [40, 60, "--a3"], [60, 999, "--a4"]];
+  const binLabel = i => [L().grip, "12–25°", "25–40°", "40–60°", L().deg60][i];
+  const binOf = a => BINS.findIndex(b => a >= b[0] && a < b[1]);
+  const currentSession = () => D.sessions[state.session];
+  const currentTrack = () => { const s = history.find(h => h.id === state.session); return s ? D.tracks[s.track] : null; };
+
+  function drawSymbol(g, type, x, y) {
+    const c = STATUS[type];
+    if (type === "impact") el("circle", { cx: x, cy: y, r: 6.5, fill: c, stroke: "var(--surface)", "stroke-width": 2 }, g);
+    else if (type === "spin") el("path", { d: `M${x} ${y - 7}L${x + 7} ${y}L${x} ${y + 7}L${x - 7} ${y}Z`, fill: c, stroke: "var(--surface)", "stroke-width": 2 }, g);
+    else if (type === "lock") el("path", { d: `M${x} ${y - 6}L${x + 6} ${y + 5}L${x - 6} ${y + 5}Z`, fill: c, stroke: "var(--surface)", "stroke-width": 1.5 }, g);
+    else el("circle", { cx: x, cy: y, r: 4, fill: c, stroke: "var(--surface)", "stroke-width": 1.5 }, g);
+  }
+  function symSvg(type) { const s = document.createElementNS(NS, "svg"); s.setAttribute("width", 16); s.setAttribute("height", 16); s.setAttribute("viewBox", "0 0 16 16"); drawSymbol(s, type, 8, 8); return s.outerHTML; }
+  const sevColor = c => c.impacts > 0 ? "var(--crit)" : c.spins > 0 ? "var(--serious)" : (c.trouble > 0 ? "var(--warn)" : "var(--hair)");
+  const sevClass = c => c.impacts > 0 ? "s3" : c.spins > 0 ? "s2" : (c.trouble > 0 ? "s1" : "");
+  const cornerName = c => `${L().kind[c.kind]} ${L().dir[c.dir]}`;
+
+  function renderMap() {
+    const box = $("map"); box.innerHTML = "";
+    const tr = currentTrack(), ses = currentSession();
+    if (!tr || !ses) { box.innerHTML = `<p class="note">${L().pickSession}</p>`; $("map-legend").innerHTML = ""; return; }
+    const xs = tr.ref_trace.x.concat(ses.trace.x), zs = tr.ref_trace.z.concat(ses.trace.z);
+    const minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs);
+    const W = 760, pad = 26, k = (W - 2 * pad) / Math.max(maxx - minx, 1);
+    const H = Math.min(Math.max((maxz - minz) * k + 2 * pad, 260), 900);
+    const k2 = Math.min(k, (H - 2 * pad) / Math.max(maxz - minz, 1));
+    const ox = (W - (maxx - minx) * k2) / 2, oz = (H - (maxz - minz) * k2) / 2;
+    const P = (x, z) => [(x - minx) * k2 + ox, (z - minz) * k2 + oz];
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": L().mapTitle }, box);
+    const ref = tr.ref_trace.x.map((x, i) => P(x, tr.ref_trace.z[i]).map(v => v.toFixed(1)).join(",")).join(" ");
+    el("polyline", { points: ref, fill: "none", stroke: "var(--hair)", "stroke-width": 11, "stroke-linecap": "round", "stroke-linejoin": "round" }, svg);
+    const g = el("g", {}, svg);
+    if (state.mode === "session") {
+      const t = ses.trace; let run = [], bin = -1, seg = -1;
+      const flush = () => { if (run.length > 1) el("polyline", { points: run.join(" "), fill: "none", stroke: `var(${BINS[bin][2]})`, "stroke-width": 3.5, "stroke-linecap": "round", "stroke-linejoin": "round" }, g); };
+      for (let i = 0; i < t.x.length; i++) {
+        const b = binOf(t.angle[i]), p = P(t.x[i], t.z[i]).map(v => v.toFixed(1)).join(",");
+        if (b !== bin || t.seg[i] !== seg) { if (t.seg[i] === seg) run.push(p); flush(); run = [p]; bin = b; seg = t.seg[i]; }
+        else run.push(p);
+      }
+      flush();
+    } else el("polyline", { points: ref, fill: "none", stroke: "var(--a0)", "stroke-width": 3, "stroke-linecap": "round", "stroke-linejoin": "round" }, g);
+
+    const maxT = Math.max(1, ...tr.corners.map(c => c.trouble));
+    tr.corners.forEach(c => {
+      const [x, y] = P(c.x, c.z), cg = el("g", { "data-corner": c.id }, svg);
+      if (state.mode === "cumul" && c.trouble > 0) el("circle", { cx: x, cy: y, r: 10 + 16 * c.trouble / maxT, fill: sevColor(c), "fill-opacity": .22, stroke: sevColor(c), "stroke-width": 1.5 }, cg);
+      el("circle", { cx: x, cy: y, r: 9.5, fill: "var(--surface)", stroke: "var(--ink)", "stroke-width": 1.2, class: "badge" }, cg);
+      txt(cg, x, y + 4, c.id, { "text-anchor": "middle", "font-family": "Saira Condensed, Arial Narrow, sans-serif", "font-size": 12.5, "font-weight": 600, fill: "var(--ink)" });
+      el("circle", { cx: x, cy: y, r: 16, fill: "transparent" }, cg);
+      cg.addEventListener("mousemove", e => { showTip(`<b>${L().corner} ${c.id}</b> · ${cornerName(c)} · ${fmt(Math.abs(c.turn))}°<br>${L().passes(c.passes)} · ${L().driftsN(c.drifts)}${c.avg_angle ? " · " + fmt(c.avg_angle) + "° " + L().avg : ""}<br>${L().cornerTip(c)}`, e); highlightCorner(c.id, true); });
+      cg.addEventListener("mouseleave", () => { hideTip(); highlightCorner(c.id, false); });
+    });
+    if (state.mode === "session") {
+      const order = { lift: 0, lock: 1, spin: 2, impact: 3 }, eg = el("g", {}, svg);
+      ses.events.slice().sort((a, b) => order[a.type] - order[b.type]).forEach(e => {
+        const [x, y] = P(e.x, e.z), sg = el("g", {}, eg);
+        drawSymbol(sg, e.type, x, y);
+        el("circle", { cx: x, cy: y, r: 11, fill: "transparent" }, sg);
+        sg.addEventListener("mousemove", ev => showTip(eventTip(e), ev));
+        sg.addEventListener("mouseleave", hideTip);
+      });
+      $("map-legend").innerHTML = `<span class="eyebrow">${L().angle}</span>` + BINS.map((b, i) => `<span class="ramp"><i style="background:var(${b[2]})"></i>${binLabel(i)}</span>`).join("") +
+        ["impact", "spin", "lift", "lock"].map(t => `<span class="sym">${symSvg(t)}${L()[t]}</span>`).join("");
+    } else $("map-legend").innerHTML = `<span>${L().cumulLegend}</span>`;
+  }
+  function eventTip(e) {
+    const c = e.corner ? ` · ${L().C}${e.corner}` : "";
+    if (e.type === "impact") return `<b>${L().evImpact(e.kind)}</b>${c}<br>${fmt(e.t, 1)} s · ${L().arriving} ${fmt(e.speed)} km/h · ${fmt(e.g, 1)} g`;
+    if (e.type === "spin") return `<b>${L().spin}</b>${c}<br>${fmt(e.t, 1)} s · ${fmt(e.angle)}° · ${fmt(e.speed)} km/h`;
+    if (e.type === "lock") return `<b>${L().lock}</b>${c}<br>${fmt(e.t, 1)} s · ${L().revs} ${fmt(e.rpm)} rpm · ${fmt(e.speed)} km/h`;
+    return `<b>${L().lift}</b>${c}<br>${fmt(e.t, 1)} s · ${fmt(e.duration, 2)} ${L().footOff} · ${fmt(e.angle_before)}° → ${fmt(e.angle_after)}°`;
+  }
+  function highlightCorner(id, on) { document.querySelectorAll(".corner").forEach(r => r.classList.toggle("hl", on && r.dataset.id == id)); }
+
+  function renderCorners() {
+    const box = $("corners"); box.innerHTML = "";
+    const tr = currentTrack(); if (!tr) { $("corner-count").textContent = ""; return; }
+    $("corner-count").textContent = L().cornersFound(tr.corners.length);
+    tr.corners.slice().sort((a, b) => b.trouble - a.trouble || a.id - b.id).forEach(c => {
+      const ch = L().chips, chips = [];
+      if (c.impacts) chips.push(`<span class="chip"><span class="dot" style="background:var(--crit)"></span>${ch.impacts(c.impacts)}</span>`);
+      if (c.spins) chips.push(`<span class="chip"><span class="dot" style="background:var(--serious)"></span>${ch.spins(c.spins)}</span>`);
+      if (c.late_cs) chips.push(`<span class="chip"><span class="dot" style="background:var(--warn)"></span>${ch.late(c.late_cs)}</span>`);
+      if (c.lifts) chips.push(`<span class="chip">${ch.lifts(c.lifts)}</span>`);
+      if (!chips.length) chips.push(`<span class="chip">${ch.none}</span>`);
+      const row = document.createElement("div"); row.className = "corner"; row.dataset.id = c.id;
+      row.innerHTML = `<span class="stripe ${sevClass(c)}"></span><span class="num">${L().C}${c.id}</span>
+        <span class="desc"><span><b>${cornerName(c)}</b> · ${fmt(Math.abs(c.turn))}°</span>
+        <span>${L().driftsN(c.drifts)}${c.avg_angle ? " · " + fmt(c.avg_angle) + "° " + L().avg : ""}${c.avg_entry ? " · " + L().entry + " " + fmt(c.avg_entry) + " km/h" : ""} · ${L().passes(c.passes)}</span>
+        <span class="chips">${chips.join("")}</span></span>`;
+      row.addEventListener("mouseenter", () => { const b = document.querySelector(`[data-corner="${c.id}"] .badge`); if (b) b.setAttribute("stroke-width", 3); });
+      row.addEventListener("mouseleave", () => { document.querySelectorAll("[data-corner] .badge").forEach(b => b.setAttribute("stroke-width", 1.2)); });
+      box.appendChild(row);
+    });
+  }
+
+  /* ---------- run telemetry ---------- */
+  function renderStrip() {
+    const box = $("strip"); box.innerHTML = "";
+    const ses = currentSession(); if (!ses) return;
+    const t = ses.trace, T = t.t[t.t.length - 1] || 1;
+    const W = 1000, Lm = 52, R = 12, rowH = 92, gap = 34, top = 24;
+    const vmax = Math.ceil(Math.max(...t.speed) / 50) * 50;
+    const rows = [
+      { key: "angle", unit: "°", max: 90, ticks: [0, 30, 60, 90], area: true },
+      { key: "thr", unit: "%", max: 1, scale: 100, ticks: [0, .4, 1], band: [.4, .9] },
+      { key: "speed", unit: "km/h", max: vmax, ticks: [0, vmax / 2, vmax] },
+    ];
+    const H = top + rows.length * (rowH + gap) - gap + 26;
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": L().runTitle }, box);
+    const X = v => Lm + (v / T) * (W - Lm - R);
+    rows.forEach((r, ri) => {
+      const y0 = top + ri * (rowH + gap), Y = v => y0 + rowH - (v / r.max) * rowH;
+      if (r.band) el("rect", { x: Lm, width: W - Lm - R, y: Y(r.band[1]), height: Y(r.band[0]) - Y(r.band[1]), fill: "var(--accent-wash)" }, svg);
+      r.ticks.forEach(tk => {
+        el("line", { x1: Lm, x2: W - R, y1: Y(tk), y2: Y(tk), stroke: tk === 0 ? "var(--axis)" : "var(--hair)", "stroke-width": 1 }, svg);
+        txt(svg, Lm - 6, Y(tk) + 4, fmt(tk * (r.scale || 1)), { "text-anchor": "end" });
+      });
+      txt(svg, Lm, y0 - 10, `${L().rows[ri]} (${r.unit})`, { "font-size": 12, fill: "var(--ink-2)", "font-family": "IBM Plex Sans, sans-serif", "font-weight": 500 });
+      let d = "";
+      t.t.forEach((tt, i) => { d += (i ? "L" : "M") + X(tt).toFixed(1) + " " + Y(Math.min(t[r.key][i], r.max)).toFixed(1); });
+      if (r.area) el("path", { d: d + `L${X(T)} ${Y(0)}L${X(0)} ${Y(0)}Z`, fill: "var(--accent)", "fill-opacity": .16 }, svg);
+      el("path", { d, fill: "none", stroke: "var(--accent)", "stroke-width": 1.6, "stroke-linejoin": "round" }, svg);
+      if (ri === 0) {
+        el("line", { x1: Lm, x2: W - R, y1: Y(12), y2: Y(12), stroke: "var(--muted)", "stroke-dasharray": "3 4", "stroke-width": 1 }, svg);
+        ses.events.filter(e => e.type === "impact" || e.type === "spin").forEach(e => drawSymbol(svg, e.type, X(e.t), y0 + 6));
+      }
+    });
+    const step = T > 300 ? 60 : T > 120 ? 30 : 10;
+    for (let s = 0; s <= T; s += step) txt(svg, X(s), H - 4, s + " s", { "text-anchor": "middle" });
+    const ch = el("line", { y1: top - 6, y2: H - 22, stroke: "var(--ink-2)", "stroke-width": 1, visibility: "hidden" }, svg);
+    const hit = el("rect", { x: Lm, y: 0, width: W - Lm - R, height: H - 18, fill: "transparent" }, svg);
+    hit.addEventListener("mousemove", e => {
+      const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+      const tt = (pt.matrixTransform(svg.getScreenCTM().inverse()).x - Lm) / (W - Lm - R) * T;
+      let i = 0, best = 1e9;
+      for (let j = 0; j < t.t.length; j++) { const dd = Math.abs(t.t[j] - tt); if (dd < best) { best = dd; i = j; } }
+      ch.setAttribute("x1", X(t.t[i])); ch.setAttribute("x2", X(t.t[i])); ch.setAttribute("visibility", "visible");
+      const gear = t.gear[i] <= 0 ? (t.gear[i] === 0 ? "N" : "R") : t.gear[i];
+      showTip(`<b>${fmt(t.t[i], 1)} s</b><br>${L().rows[0]} ${fmt(t.angle[i])}° · ${fmt(t.speed[i])} km/h<br>${L().thr} ${pct(t.thr[i] * 100)} · ${L().brk} ${pct(t.brk[i] * 100)}<br>${L().gear} ${gear} · ${fmt(t.rpm[i])} rpm · ${L().wheel} ${fmt(t.steer[i])}°`, e);
+    });
+    hit.addEventListener("mouseleave", () => { ch.setAttribute("visibility", "hidden"); hideTip(); });
+  }
+
+  /* ---------- progress ---------- */
+  const EVO = [
+    { k: "clean_pct", u: "%" }, { k: "lift_pct", u: "%", d: 1 },
+    { k: "cs_late", u: "" }, { k: "impacts_per_km", u: "", d: 1 }, { k: "spins", u: "" }, { k: "avg_angle", u: "°" },
+  ];
+  function renderEvo() {
+    const box = $("multiples"); box.innerHTML = "";
+    const list = filtered();
+    $("evo-scope").textContent = L().evoScope(list.length);
+    EVO.forEach(m => {
+      const wrap = document.createElement("div"); wrap.className = "mult";
+      const vals = list.map(s => s[m.k]).filter(v => v !== null && v !== undefined);
+      wrap.innerHTML = `<div class="t"><span>${L().evo[m.k]}</span><span class="mono">${fmt(vals[vals.length - 1], m.d || 0)}${m.u}</span></div>`;
+      const W = 300, H = 92, Lm = 30, R = 10, T = 10, B = 18;
+      const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": L().evo[m.k] }, wrap);
+      const maxV = Math.max(1, ...vals) * 1.15, nice = maxV <= 5 ? Math.ceil(maxV) : Math.ceil(maxV / 10) * 10;
+      const Y = v => T + (H - T - B) - (v / nice) * (H - T - B), n = list.length;
+      const X = i => n <= 1 ? (Lm + (W - Lm - R) / 2) : Lm + i * (W - Lm - R) / (n - 1);
+      [0, nice / 2, nice].forEach(tk => {
+        el("line", { x1: Lm, x2: W - R, y1: Y(tk), y2: Y(tk), stroke: tk === 0 ? "var(--axis)" : "var(--hair)", "stroke-width": 1 }, svg);
+        txt(svg, Lm - 5, Y(tk) + 3.5, fmt(tk, tk % 1 ? 1 : 0), { "text-anchor": "end", "font-size": 10 });
+      });
+      const pts = list.map((s, i) => (s[m.k] === null || s[m.k] === undefined) ? null : [X(i), Y(s[m.k]), s]).filter(Boolean);
+      if (pts.length > 1) {
+        const line = pts.map((p, i) => (i ? "L" : "M") + p[0] + " " + p[1]).join("");
+        el("path", { d: line + `L${pts[pts.length - 1][0]} ${Y(0)}L${pts[0][0]} ${Y(0)}Z`, fill: "var(--accent)", "fill-opacity": .1 }, svg);
+        el("path", { d: line, fill: "none", stroke: "var(--accent)", "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+      }
+      pts.forEach((p, i) => {
+        el("circle", { cx: p[0], cy: p[1], r: i === pts.length - 1 ? 5 : 3.5, fill: "var(--accent)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
+        const h = el("circle", { cx: p[0], cy: p[1], r: 12, fill: "transparent" }, svg);
+        h.addEventListener("mousemove", e => showTip(`<b>${p[2].date}</b><br>${prettyCar(p[2].car)}<br>${L().evo[m.k]}${state.lang === "fr" ? " : " : ": "}${fmt(p[2][m.k], m.d || 0)}${m.u}`, e));
+        h.addEventListener("mouseleave", hideTip);
+      });
+      if (n) {
+        const d0 = list[0].date.slice(5, 10).split("-").reverse().join("/");
+        txt(svg, X(0), H - 3, d0, { "text-anchor": n <= 1 ? "middle" : "start", "font-size": 10 });
+        if (n > 1) txt(svg, X(n - 1), H - 3, list[n - 1].date.slice(5, 10).split("-").reverse().join("/"), { "text-anchor": "end", "font-size": 10 });
+      }
+      box.appendChild(wrap);
+    });
+  }
+
+  /* ---------- tables ---------- */
+  const OUTC = { clean: "var(--good)", impact: "var(--crit)", spin: "var(--serious)" };
+  function renderDrifts() {
+    const ses = currentSession(), tb = $("drifts");
+    if (!ses) { tb.innerHTML = ""; $("drift-count").textContent = ""; return; }
+    $("drift-count").textContent = L().driftsN(ses.drifts.length);
+    tb.innerHTML = `<thead><tr>${L().table.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>` + ses.drifts.map(d =>
+      `<tr><td class="mono">${fmt(d.t0, 1)} s</td><td>${d.corner ? L().C + d.corner : "–"}</td><td>${d.gear}</td><td>${fmt(d.entry)} km/h</td><td>${fmt(d.exit)} km/h</td><td>${fmt(d.avg_angle)}°</td><td>${fmt(d.max_angle)}°</td><td>${pct(d.throttle * 100)}</td><td>${pct(d.lift_pct)}</td><td><span class="status"><span class="dot" style="background:${OUTC[d.outcome]}"></span>${L().outcome[d.outcome]}</span></td></tr>`
+    ).join("") + "</tbody>";
+  }
+  function aggTable(id, key, labeler) {
+    const groups = {};
+    history.forEach(s => (groups[s[key]] = groups[s[key]] || []).push(s));
+    const rows = Object.entries(groups).map(([k, ss]) => {
+      const km = ss.reduce((a, s) => a + s.distance_km, 0), dr = ss.reduce((a, s) => a + s.drifts, 0);
+      const clean = ss.reduce((a, s) => a + (s.clean_pct || 0) * s.drifts, 0) / Math.max(dr, 1);
+      const imp = ss.reduce((a, s) => a + s.impacts, 0), ang = ss.reduce((a, s) => a + (s.avg_angle || 0) * s.drifts, 0) / Math.max(dr, 1);
+      return `<tr><td>${labeler(k)}</td><td>${ss.length}</td><td>${fmt(km, 1)}</td><td>${dr}</td><td>${pct(clean)}</td><td>${fmt(ang)}°</td><td>${fmt(imp / Math.max(km, .01), 1)}</td></tr>`;
+    });
+    $(id).innerHTML = `<thead><tr><th>${key === "car" ? L().car : L().road}</th>${L().agg.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody>`;
+  }
+
+  function save() { try { localStorage.setItem("dl-prefs", JSON.stringify({ track: state.track, car: state.car, mode: state.mode, lang: state.lang })); } catch (e) {} }
+  function renderAll() {
+    renderFilters(); renderTotals(); renderBand(); renderCoach(); renderMap(); renderCorners(); renderStrip(); renderEvo(); renderDrifts();
+    aggTable("by-car", "car", prettyCar); aggTable("by-track", "track", prettyTrack);
+  }
+  $("f-track").addEventListener("change", e => { state.track = e.target.value; state.session = null; save(); renderAll(); });
+  $("f-car").addEventListener("change", e => { state.car = e.target.value; state.session = null; save(); renderAll(); });
+  $("f-session").addEventListener("change", e => { state.session = e.target.value; renderAll(); });
+  $("m-session").addEventListener("click", () => { state.mode = "session"; save(); renderAll(); });
+  $("m-cumul").addEventListener("click", () => { state.mode = "cumul"; save(); renderAll(); });
+  $("l-fr").addEventListener("click", () => { state.lang = "fr"; save(); renderAll(); });
+  $("l-en").addEventListener("click", () => { state.lang = "en"; save(); renderAll(); });
+  renderAll();
+})();
+</script>
