@@ -7,6 +7,7 @@ metrics, detects the corners of each road from the car's trajectory and updates:
   sessions/<id>.json    one session in detail (trace, events, drifts)
   tracks/<track>.json   detected corners + cumulative stats per corner
   history.json          one row of metrics per session
+  report.json           technique / corner comparisons over all sessions
 
 Usage:   python analyse.py                 analyse new log files
          python analyse.py --all           recompute everything
@@ -22,12 +23,14 @@ import sys
 import numpy as np
 import pandas as pd
 
+import corner_report
 import technique
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SESS_DIR = os.path.join(HERE, "sessions")
 TRACK_DIR = os.path.join(HERE, "tracks")
 HISTORY = os.path.join(HERE, "history.json")
+REPORT = os.path.join(HERE, "report.json")
 
 # --- thresholds ---------------------------------------------------------------
 DRIFT_ANGLE = 12.0        # deg of body slip angle to count as a drift
@@ -333,12 +336,21 @@ def update_track(track, sessions):
             cid = corner_of(corners, c_s["pos"])
             if cid and c_s["delay"] > 0.5:
                 corners[cid - 1]["late_cs"] += 1
+    attempts = []
+    for s in sessions:
+        attempts += corner_report.corner_passes(s, corners)
+    for c in corners:
+        mine = [a for a in attempts if a["corner"] == c["id"]]
+        for a in mine:
+            a["corner_kind"] = c["kind"]
+        c["stats"] = corner_report.corner_stats(c, mine)
     for c in corners:
         c["avg_angle"] = round(c["angle_sum"] / c["drifts"], 0) if c["drifts"] else None
         c["avg_entry"] = round(c["entry_sum"] / c["drifts"], 0) if c["drifts"] else None
-        c["trouble"] = c["impacts"] * 3 + c["spins"] * 2 + c["late_cs"] + c["locks"]
+        st = c["stats"]
+        c["trouble"] = (st["attempts"] - st["success"]) * 3 + c["spins"] + c["late_cs"] + c["locks"]
         del c["angle_sum"], c["entry_sum"]
-    data = {"track": track, "ref_session": ref["summary"]["id"], "corners": corners,
+    data = {"track": track, "ref_session": ref["summary"]["id"], "corners": corners, "attempts": attempts,
             "ref_trace": {k: ref["trace"][k] for k in ("x", "z", "pos")}}
     with open(os.path.join(TRACK_DIR, safe(track) + ".json"), "w") as f:
         json.dump(data, f)
@@ -402,6 +414,11 @@ def main():
             json.dump(s, f)
     with open(HISTORY, "w") as f:
         json.dump([s["summary"] for s in sessions], f, indent=1)
+    all_attempts = [a for t in tracks.values() for a in t["attempts"]]
+    report = {"overall": corner_report.overall(all_attempts),
+              "by_track": {k: corner_report.overall(t["attempts"]) for k, t in tracks.items()}}
+    with open(REPORT, "w") as f:
+        json.dump(report, f)
     print("%d session(s) in history" % len(sessions))
 
 
