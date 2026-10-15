@@ -75,7 +75,44 @@ def prepare(df):
     df["g"] = np.sqrt(df["acc_g_x"] ** 2 + df["acc_g_z"] ** 2)
     df["drifting"] = (df["beta"].abs() > DRIFT_ANGLE) & (df["speed_kmh"] > DRIFT_MIN_SPEED)
     df["handbrake_on"] = technique.handbrake_mask(df)
+    df["heading"] = heading(df, jump)
     return df
+
+
+def heading(df, jump):
+    """Where the car's nose points on the map, in degrees (0 = +z, 90 = +x).
+
+    AC's Python API gives no world heading, so it is rebuilt: the direction of
+    travel (from the world position) minus the slip angle. That is noisy at low
+    speed, so the yaw rate is integrated and only its slow drift is corrected
+    from the travel direction."""
+    n = len(df)
+    k = max(1, int(round(n / max(df.time_s.iloc[-1], 1) * 0.08)))  # ~0.08 s each side
+    x, z = df.world_x.values, df.world_z.values
+    dx = np.roll(x, -k) - np.roll(x, k)
+    dz = np.roll(z, -k) - np.roll(z, k)
+    course = np.arctan2(dx, dz)
+    from_path = course - np.radians(df.beta.values)
+    dt = df.time_s.diff().fillna(0).clip(0, 0.1).values
+    integ = np.cumsum(df.yaw_rate.values * dt)
+    err = np.angle(np.exp(1j * (from_path - integ)))
+    ok = (df.speed_kmh.values > 12) & ~jump.values
+    ok[:k] = ok[-k:] = False
+    seg = jump.cumsum().values
+    corr = np.full(n, np.nan)
+    for sgi in np.unique(seg):
+        m = seg == sgi
+        e = pd.Series(np.where(ok & m, err, np.nan))[m]
+        if e.notna().sum() < 3:
+            continue
+        # unwrap the error so smoothing never averages across +-180
+        ev = e.dropna()
+        ev[:] = np.unwrap(ev.values)
+        e.loc[ev.index] = ev.values
+        sm = e.rolling(int(max(5, 1.5 / max(dt[m].mean(), 1e-3))), center=True, min_periods=1).median()
+        corr[m] = sm.interpolate(limit_direction="both").values
+    corr = pd.Series(corr).ffill().bfill().fillna(0).values
+    return np.degrees(np.angle(np.exp(1j * (integ + corr))))
 
 
 def group_times(indices, gap):
@@ -258,7 +295,10 @@ def downsample(df, hz=10):
             "speed": s.speed_kmh.round(0).tolist(), "angle": s.beta.abs().round(0).tolist(),
             "thr": s.throttle.round(2).tolist(), "brk": s.brake.round(2).tolist(),
             "steer": s.steer_deg.round(0).tolist(), "gear": s.gear.astype(int).tolist(),
-            "rpm": s.rpm.round(-1).tolist(), "seg": s.segment.astype(int).tolist()}
+            "rpm": s.rpm.round(-1).tolist(), "seg": s.segment.astype(int).tolist(),
+            # for the replay: heading, signed slip angle, clutch, handbrake
+            "hd": s.heading.round(1).tolist(), "sb": s.beta.round(1).tolist(),
+            "clu": s.clutch.round(2).tolist(), "hb": s.handbrake_on.astype(int).tolist()}
 
 
 def summarize(sid, meta, df, ev, dr, cs, stabs):
