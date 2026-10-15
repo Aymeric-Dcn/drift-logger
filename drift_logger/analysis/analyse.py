@@ -2,9 +2,10 @@
 Drift Logger - session analysis
 -------------------------------
 Reads the CSV files recorded by the Drift Logger in-game app, computes driving
-metrics, and updates:
+metrics, detects the corners of each road from the car's trajectory and updates:
 
   sessions/<id>.json    one session in detail (trace, events, drifts)
+  tracks/<track>.json   detected corners + cumulative stats per corner
   history.json          one row of metrics per session
 
 Usage:   python analyse.py                 analyse new log files
@@ -14,6 +15,7 @@ Requires: numpy, pandas
 """
 import glob
 import json
+import math
 import os
 import sys
 
@@ -22,6 +24,7 @@ import pandas as pd
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SESS_DIR = os.path.join(HERE, "sessions")
+TRACK_DIR = os.path.join(HERE, "tracks")
 HISTORY = os.path.join(HERE, "history.json")
 
 # --- thresholds ---------------------------------------------------------------
@@ -33,6 +36,8 @@ IMPACT_G = 3.5            # g: wall contact
 LIFT_THR = 0.05           # throttle below this = foot off
 LOCK_RPM = 1500           # rpm collapse in gear = rear wheels locked
 CS_ONSET = 15.0           # deg: rear stepping out, start of counter-steer timing
+CORNER_RADIUS = 90.0      # m: max path radius to count as a corner
+CORNER_MIN_LEN = 12.0     # m
 
 
 def load_csv(path):
@@ -182,6 +187,50 @@ def find_drifts(df, events):
     return res
 
 
+def detect_corners(df):
+    """Corners = stretches where the path radius drops below CORNER_RADIUS."""
+    seg = df[df.segment == df.segment.mode()[0]]
+    pts = seg[["dist", "world_x", "world_z", "track_pos"]].values
+    d = pts[:, 0]
+    if d[-1] - d[0] < 100:
+        return []
+    grid = np.arange(d[0], d[-1], 2.0)  # resample every 2 m
+    x = np.interp(grid, d, pts[:, 1])
+    z = np.interp(grid, d, pts[:, 2])
+    p = np.interp(grid, d, pts[:, 3])
+    xs = np.convolve(x, np.ones(6) / 6, mode="same")
+    zs = np.convolve(z, np.ones(6) / 6, mode="same")
+    head = np.unwrap(np.arctan2(np.gradient(zs), np.gradient(xs)))
+    curv = np.convolve(np.gradient(head) / 2.0, np.ones(8) / 8, mode="same")
+    is_corner = np.abs(curv) > 1.0 / CORNER_RADIUS
+    corners, start = [], None
+    for i, v in enumerate(list(is_corner) + [False]):
+        if v and start is None:
+            start = i
+        elif not v and start is not None:
+            end = i - 1
+            if (end - start) * 2.0 >= CORNER_MIN_LEN:
+                turn = math.degrees(head[end] - head[start])
+                apex = start + int(np.argmax(np.abs(curv[start:end + 1])))
+                corners.append({"pos0": round(float(p[start]), 5), "pos1": round(float(p[end]), 5),
+                                "x": round(float(x[apex]), 1), "z": round(float(z[apex]), 1),
+                                "turn": round(turn, 0),
+                                "radius": round(float(1 / max(abs(curv[apex]), 1e-4)), 0),
+                                "dir": "left" if turn > 0 else "right"})
+            start = None
+    merged = []  # join very close corners turning the same way
+    for c in corners:
+        if merged and c["dir"] == merged[-1]["dir"] and c["pos0"] - merged[-1]["pos1"] < 0.004:
+            merged[-1]["pos1"] = c["pos1"]
+            merged[-1]["turn"] += c["turn"]
+        else:
+            merged.append(c)
+    for i, c in enumerate(merged):
+        c["id"] = i + 1
+        c["kind"] = "hairpin" if abs(c["turn"]) > 120 else ("tight" if c["radius"] < 35 else "fast")
+    return merged
+
+
 def downsample(df, hz=10):
     step = max(1, int(round(len(df) / max(df.time_s.iloc[-1], 1) / hz)))
     s = df.iloc[::step]
@@ -221,6 +270,53 @@ def summarize(sid, meta, df, ev, dr, cs):
     }
 
 
+def corner_of(corners, pos):
+    for c in corners:
+        if c["pos0"] - 0.003 <= pos <= c["pos1"] + 0.003:
+            return c["id"]
+    return None
+
+
+def update_track(track, sessions):
+    """Corners come from the session covering the most road; stats from all sessions."""
+    os.makedirs(TRACK_DIR, exist_ok=True)
+    ref = max(sessions, key=lambda s: s["summary"]["track_cover"])
+    corners = [dict(c) for c in ref["corners"]]
+    for c in corners:
+        c.update({"passes": 0, "drifts": 0, "impacts": 0, "spins": 0, "lifts": 0, "locks": 0,
+                  "late_cs": 0, "angle_sum": 0.0, "entry_sum": 0.0})
+    keys = {"impact": "impacts", "spin": "spins", "lift": "lifts", "lock": "locks"}
+    for s in sessions:
+        pos = np.array(s["trace"]["pos"])
+        for c in corners:
+            if ((pos >= c["pos0"]) & (pos <= c["pos1"])).any():
+                c["passes"] += 1
+        for d in s["drifts"]:
+            cid = corner_of(corners, (d["pos0"] + d["pos1"]) / 2)
+            if cid:
+                corners[cid - 1]["drifts"] += 1
+                corners[cid - 1]["angle_sum"] += d["avg_angle"]
+                corners[cid - 1]["entry_sum"] += d["entry"]
+        for e in s["events"]:
+            cid = corner_of(corners, e["pos"])
+            if cid:
+                corners[cid - 1][keys[e["type"]]] += 1
+        for c_s in s["countersteer"]:
+            cid = corner_of(corners, c_s["pos"])
+            if cid and c_s["delay"] > 0.5:
+                corners[cid - 1]["late_cs"] += 1
+    for c in corners:
+        c["avg_angle"] = round(c["angle_sum"] / c["drifts"], 0) if c["drifts"] else None
+        c["avg_entry"] = round(c["entry_sum"] / c["drifts"], 0) if c["drifts"] else None
+        c["trouble"] = c["impacts"] * 3 + c["spins"] * 2 + c["late_cs"] + c["locks"]
+        del c["angle_sum"], c["entry_sum"]
+    data = {"track": track, "ref_session": ref["summary"]["id"], "corners": corners,
+            "ref_trace": {k: ref["trace"][k] for k in ("x", "z", "pos")}}
+    with open(os.path.join(TRACK_DIR, safe(track) + ".json"), "w") as f:
+        json.dump(data, f)
+    return data
+
+
 def safe(s):
     return "".join(c if c.isalnum() or c in "-_" else "_" for c in s)
 
@@ -233,7 +329,7 @@ def analyse_file(path):
     dr = find_drifts(df, ev)
     cs = countersteer_delays(df)
     return {"summary": summarize(sid, meta, df, ev, dr, cs), "events": ev, "drifts": dr,
-            "countersteer": cs,
+            "countersteer": cs, "corners": detect_corners(df),
             "trace": downsample(df), "file": os.path.basename(path)}
 
 
@@ -263,6 +359,18 @@ def main():
     for p in sorted(glob.glob(os.path.join(SESS_DIR, "*.json"))):
         with open(p) as f:
             sessions.append(json.load(f))
+    by_track = {}
+    for s in sessions:
+        by_track.setdefault(s["summary"]["track"], []).append(s)
+    tracks = {t: update_track(t, ss) for t, ss in by_track.items()}
+    for s in sessions:  # tag every event and drift with its corner
+        cs = tracks[s["summary"]["track"]]["corners"]
+        for e in s["events"]:
+            e["corner"] = corner_of(cs, e["pos"])
+        for d in s["drifts"]:
+            d["corner"] = corner_of(cs, (d["pos0"] + d["pos1"]) / 2)
+        with open(os.path.join(SESS_DIR, s["summary"]["id"] + ".json"), "w") as f:
+            json.dump(s, f)
     with open(HISTORY, "w") as f:
         json.dump([s["summary"] for s in sessions], f, indent=1)
     print("%d session(s) in history" % len(sessions))
