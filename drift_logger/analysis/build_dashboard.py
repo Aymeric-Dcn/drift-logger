@@ -1,4 +1,4 @@
-"""Build the dashboard: injects history, sessions, corners and coaching notes
+"""Build the dashboard: injects history, sessions, corners, technique report and coaching notes
 into dashboard_template.html -> dashboard.html (opens in any browser)."""
 import glob
 import json
@@ -29,12 +29,15 @@ def main():
         if t:
             for c in t["corners"]:
                 c.pop("by_session", None)
+            for a in t.get("attempts", []):
+                a.pop("flags", None)
             tracks[t["track"]] = t
     data = {
         "history": load(os.path.join(HERE, "history.json"), []),
         "sessions": sessions,
         "tracks": tracks,
         "coaching": load(os.path.join(HERE, "coaching.json"), []),
+        "report": load(os.path.join(HERE, "report.json"), {}),
         "generated": time.strftime("%Y-%m-%d %H:%M"),
     }
     with open(os.path.join(HERE, "dashboard_template.html"), encoding="utf-8") as f:

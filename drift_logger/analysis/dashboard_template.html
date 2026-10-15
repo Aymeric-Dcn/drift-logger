@@ -3,22 +3,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: a race engineer's desk. Session band on top, coaching, road map next to the corner list, run traces and history below. */
+/* Layout: a race engineer's desk in four tabs. Session (what happened), Corners (where and why), Techniques (what works), Progress (over time). */
 :root {
-  --bg: #eef1f5;
-  --surface: #fbfcfd;
-  --ink: #0f1620;
-  --ink-2: #4c5766;
-  --muted: #7d8794;
-  --hair: #dce1e8;
-  --axis: #c3cad4;
-  --accent: #1d5fbf;
-  --accent-wash: #e3ecf8;
-  --good: #0a7d2c;
-  --crit: #d03b3b;
-  --serious: #ec835a;
-  --warn: #fab219;
+  --bg: #eef1f5; --surface: #fbfcfd; --ink: #0f1620; --ink-2: #4c5766; --muted: #7d8794;
+  --hair: #dce1e8; --axis: #c3cad4; --accent: #1d5fbf; --accent-wash: #e3ecf8; --good: #0a7d2c; --good-line: #0ca30c;
+  --crit: #d03b3b; --serious: #ec835a; --warn: #fab219;
   --a0: #b9c1cc; --a1: #86b6ef; --a2: #3987e5; --a3: #1c5cab; --a4: #0d366b;
+  --t-power: #2a78d6; --t-lift: #eb6834; --t-feint: #1baf7a; --t-brake: #eda100; --t-clutch: #e87ba4; --t-transition: #008300; --t-other: #6250d6; --t-grip: #b9c1cc;
   --display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
   --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -26,24 +17,28 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0d1218; --surface: #141b24; --ink: #e8edf3; --ink-2: #b2bccb; --muted: #7f8a99;
-    --hair: #243040; --axis: #34404f; --accent: #5b98ec; --accent-wash: #1a2a40; --good: #2fbf5a;
+    --hair: #243040; --axis: #34404f; --accent: #5b98ec; --accent-wash: #1a2a40; --good: #2fbf5a; --good-line: #2fbf5a;
     --a0: #3e4856; --a1: #1c5cab; --a2: #2a78d6; --a3: #5598e7; --a4: #9ec5f4;
+    --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-grip: #3e4856;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0d1218; --surface: #141b24; --ink: #e8edf3; --ink-2: #b2bccb; --muted: #7f8a99;
-  --hair: #243040; --axis: #34404f; --accent: #5b98ec; --accent-wash: #1a2a40; --good: #2fbf5a;
+  --hair: #243040; --axis: #34404f; --accent: #5b98ec; --accent-wash: #1a2a40; --good: #2fbf5a; --good-line: #2fbf5a;
   --a0: #3e4856; --a1: #1c5cab; --a2: #2a78d6; --a3: #5598e7; --a4: #9ec5f4;
+  --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-grip: #3e4856;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.5;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px; }
 .wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
 h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: .01em; margin: 0; text-wrap: balance; }
 h1 { font-size: 34px; line-height: 1; font-weight: 700; }
 h2 { font-size: 21px; line-height: 1.1; }
+h3 { font-size: 17px; line-height: 1.15; }
 .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
@@ -57,11 +52,16 @@ header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: 
 .field label, .field .lbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 select { font: 500 13.5px var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--hair); border-radius: 6px; padding: 7px 28px 7px 10px; max-width: 280px; }
 select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
 .seg { display: inline-flex; border: 1px solid var(--hair); border-radius: 7px; overflow: hidden; background: var(--surface); }
 .seg button { font: 500 12.5px var(--body); color: var(--ink-2); background: transparent; border: 0; padding: 7px 11px; cursor: pointer; }
 .seg button[aria-pressed="true"] { background: var(--accent-wash); color: var(--accent); }
 .seg button + button { border-left: 1px solid var(--hair); }
+
+nav.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--axis); overflow-x: auto; }
+nav.tabs button { font: 600 16px var(--display); letter-spacing: .02em; color: var(--ink-2); background: none; border: 0; padding: 8px 14px 9px; border-bottom: 3px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+nav.tabs button .count { font: 500 11px var(--mono); color: var(--muted); margin-left: 6px; }
+.tab { display: flex; flex-direction: column; gap: 20px; }
 
 .session-band { background: var(--surface); border: 1px solid var(--hair); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
 .session-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; }
@@ -76,6 +76,7 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); o
 .delta.up { color: var(--good); } .delta.down { color: var(--crit); } .delta.flat { color: var(--muted); }
 
 .grid-main { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 20px; }
+.grid-corner { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.6fr); gap: 20px; align-items: start; }
 .panel { background: var(--surface); border: 1px solid var(--hair); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
 .map-box svg { width: 100%; height: auto; display: block; }
@@ -83,18 +84,23 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); o
 .legend .ramp { display: inline-flex; align-items: center; gap: 6px; }
 .legend .ramp i { display: inline-block; width: 18px; height: 4px; border-radius: 2px; }
 .legend .sym { display: inline-flex; align-items: center; gap: 5px; }
+.legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
 
-.corners { display: flex; flex-direction: column; max-height: 560px; overflow-y: auto; margin: 0 -6px; }
-.corner { display: grid; grid-template-columns: 4px 46px minmax(0, 1fr); gap: 10px; align-items: center; padding: 9px 6px; border-bottom: 1px solid var(--hair); border-radius: 4px; }
+.corners { display: flex; flex-direction: column; max-height: 620px; overflow-y: auto; margin: 0 -6px; }
+.corner { display: grid; grid-template-columns: 4px 46px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 6px; border-bottom: 1px solid var(--hair); border-radius: 4px; cursor: pointer; text-align: left; background: none; border-left: 0; border-right: 0; border-top: 0; font: inherit; color: inherit; width: 100%; }
 .corner:hover, .corner.hl { background: var(--accent-wash); }
+.corner[aria-current="true"] { background: var(--accent-wash); box-shadow: inset 0 0 0 1px var(--accent); }
 .corner .stripe { align-self: stretch; border-radius: 2px; background: var(--hair); }
-.corner .stripe.s3 { background: var(--crit); } .corner .stripe.s2 { background: var(--serious); } .corner .stripe.s1 { background: var(--warn); }
+.corner .stripe.s3 { background: var(--crit); } .corner .stripe.s2 { background: var(--serious); } .corner .stripe.s1 { background: var(--warn); } .corner .stripe.s0 { background: var(--good-line); }
 .corner .num { font-family: var(--display); font-size: 22px; font-weight: 600; line-height: 1; }
 .corner .desc { font-size: 12.5px; color: var(--ink-2); min-width: 0; display: flex; flex-direction: column; }
 .corner .desc b { color: var(--ink); font-weight: 600; }
+.corner .rate { font-family: var(--display); font-size: 20px; font-weight: 600; text-align: right; line-height: 1; }
+.corner .rate small { display: block; font: 400 11px var(--mono); color: var(--muted); }
+.pill { display: inline-flex; align-items: center; gap: 4px; font: 600 10.5px var(--mono); letter-spacing: .05em; text-transform: uppercase; padding: 2px 7px; border-radius: 99px; background: var(--crit); color: #fff; width: fit-content; }
 .chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
 .chip { font-family: var(--mono); font-size: 11px; padding: 2px 6px; border-radius: 99px; border: 1px solid var(--hair); color: var(--ink-2); white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
-.chip .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.chip .dot, .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
 
 .coach { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
 .coach-card { display: flex; flex-direction: column; gap: 10px; }
@@ -108,7 +114,6 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); o
 .older { display: flex; flex-direction: column; gap: 8px; }
 .older .row { display: flex; gap: 10px; font-size: 13px; color: var(--ink-2); }
 
-/* throttle */
 .throttle { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 24px; align-items: center; }
 .bandbar { display: flex; gap: 2px; height: 26px; border-radius: 5px; overflow: hidden; }
 .bandbar span { display: block; height: 100%; min-width: 2px; }
@@ -120,6 +125,31 @@ select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); o
 .stabs .big { font-family: var(--display); font-size: 40px; font-weight: 600; line-height: 1; }
 .stabs .item { display: flex; flex-direction: column; gap: 3px; max-width: 30ch; }
 
+/* corner detail */
+.cd-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.cd-head .big { font-family: var(--display); font-size: 40px; font-weight: 700; line-height: .9; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--hair); border-bottom: 1px solid var(--hair); }
+.tile { padding: 10px 12px 10px 0; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.tile + .tile { padding-left: 12px; border-left: 1px solid var(--hair); }
+.tile .v { font-family: var(--display); font-size: 24px; font-weight: 600; line-height: 1.1; }
+.tile .l { font-size: 12px; color: var(--ink-2); }
+.tile .s { font: 11px var(--mono); color: var(--muted); }
+.insights { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.insights li { display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 8px; font-size: 13.5px; max-width: 75ch; }
+.insights li::before { content: ""; width: 6px; height: 6px; margin-top: 8px; border-radius: 50%; background: var(--accent); }
+.cd-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.bars { display: flex; flex-direction: column; gap: 8px; }
+.bar { display: grid; grid-template-columns: 128px minmax(0, 1fr) 64px; gap: 10px; align-items: center; font-size: 12.5px; }
+.bar .track { height: 10px; background: var(--hair); border-radius: 3px; overflow: hidden; position: relative; }
+.bar .fill { height: 100%; border-radius: 3px 0 0 3px; }
+.bar .val { font-family: var(--mono); font-size: 11.5px; text-align: right; color: var(--ink-2); white-space: nowrap; }
+.bar .name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.vs th:not(:first-child), .vs td:not(:first-child) { text-align: right; }
+.vs .ok { color: var(--good); } .vs .ko { color: var(--crit); }
+
+.matrix td { text-align: center; }
+.matrix .cell { display: inline-block; min-width: 54px; padding: 3px 6px; border-radius: 4px; font: 500 12px var(--mono); }
+
 .multiples { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 22px; }
 .mult { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .mult .t { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
@@ -130,26 +160,30 @@ table { border-collapse: collapse; width: 100%; font-size: 13px; }
 th { font-family: var(--mono); font-weight: 500; font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--axis); white-space: nowrap; }
 th:first-child, td:first-child { text-align: left; }
 td { padding: 7px 8px; border-bottom: 1px solid var(--hair); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.l, th.l { text-align: left; }
+tr.hov:hover td { background: var(--accent-wash); }
 .table-scroll { overflow-x: auto; }
 .status { display: inline-flex; align-items: center; gap: 5px; }
-.status .dot { width: 8px; height: 8px; border-radius: 50%; }
 .two { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 20px; }
+.score { display: inline-block; min-width: 30px; text-align: center; font: 500 11.5px var(--mono); padding: 1px 5px; border-radius: 4px; background: var(--accent-wash); color: var(--accent); }
 
-#tip { position: fixed; pointer-events: none; z-index: 50; background: var(--ink); color: var(--surface); font-size: 12px; line-height: 1.45; padding: 7px 9px; border-radius: 6px; max-width: 260px; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
+#tip { position: fixed; pointer-events: none; z-index: 50; background: var(--ink); color: var(--surface); font-size: 12px; line-height: 1.45; padding: 7px 9px; border-radius: 6px; max-width: 280px; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
 #tip b { font-weight: 600; }
 footer { font-size: 12px; color: var(--muted); }
 
 @media (max-width: 980px) {
-  .grid-main, .coach, .two, .throttle { grid-template-columns: minmax(0, 1fr); }
+  .grid-main, .grid-corner, .coach, .two, .throttle, .cd-grid { grid-template-columns: minmax(0, 1fr); }
   .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .kpi:nth-child(4) { border-left: 0; padding-left: 0; }
   .multiples { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .corners { max-height: 380px; }
 }
 @media (max-width: 560px) {
-  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .kpi:nth-child(odd) { border-left: 0; padding-left: 0; }
-  .kpi:nth-child(even) { border-left: 1px solid var(--hair); padding-left: 14px; }
+  .kpis, .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi:nth-child(odd), .tile:nth-child(odd) { border-left: 0; padding-left: 0; }
+  .kpi:nth-child(even), .tile:nth-child(even) { border-left: 1px solid var(--hair); padding-left: 12px; }
   .bandlegend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bar { grid-template-columns: 96px minmax(0, 1fr) 56px; }
   h1 { font-size: 28px; }
 }
 @media (prefers-reduced-motion: no-preference) { .corner { transition: background .12s; } }
@@ -171,54 +205,104 @@ footer { font-size: 12px; color: var(--muted); }
     </div>
   </header>
 
-  <section class="session-band">
-    <div class="session-meta" id="session-meta"></div>
-    <div class="kpis" id="kpis"></div>
-  </section>
+  <nav class="tabs" role="tablist" id="tabs">
+    <button role="tab" data-tab="session" id="t-session"></button>
+    <button role="tab" data-tab="corners" id="t-corners"></button>
+    <button role="tab" data-tab="techniques" id="t-techniques"></button>
+    <button role="tab" data-tab="progress" id="t-progress"></button>
+  </nav>
 
-  <section class="panel">
-    <div class="panel-head"><h2 data-i18n="coaching"></h2><span class="eyebrow" id="coach-date"></span></div>
-    <div class="coach" id="coach"></div>
-  </section>
-
-  <div class="grid-main">
-    <section class="panel">
-      <div class="panel-head">
-        <h2 data-i18n="mapTitle"></h2>
-        <div class="seg" role="group"><button id="m-session" data-i18n="thisSession"></button><button id="m-cumul" data-i18n="allSessions"></button></div>
-      </div>
-      <div class="map-box" id="map"></div>
-      <div class="legend" id="map-legend"></div>
+  <!-- SESSION -->
+  <div class="tab" id="tab-session" role="tabpanel">
+    <section class="session-band">
+      <div class="session-meta" id="session-meta"></div>
+      <div class="kpis" id="kpis"></div>
     </section>
     <section class="panel">
-      <div class="panel-head"><h2 data-i18n="cornersTitle"></h2><span class="eyebrow" id="corner-count"></span></div>
-      <div class="corners" id="corners"></div>
+      <div class="panel-head"><h2 data-i18n="coaching"></h2><span class="eyebrow" id="coach-date"></span></div>
+      <div class="coach" id="coach"></div>
+    </section>
+    <div class="grid-main">
+      <section class="panel">
+        <div class="panel-head">
+          <h2 data-i18n="mapTitle"></h2>
+          <div class="seg" role="group"><button id="m-session" data-i18n="thisSession"></button><button id="m-cumul" data-i18n="allSessions"></button></div>
+        </div>
+        <div class="map-box" id="map"></div>
+        <div class="legend" id="map-legend"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2 data-i18n="sessionCorners"></h2><span class="note" data-i18n="clickCorner"></span></div>
+        <div class="corners" id="session-corners"></div>
+      </section>
+    </div>
+    <section class="panel">
+      <div class="panel-head"><h2 data-i18n="throttleTitle"></h2><span class="note" data-i18n="throttleNote"></span></div>
+      <div class="throttle" id="throttle"></div>
+    </section>
+    <section class="panel strip">
+      <div class="panel-head"><h2 data-i18n="runTitle"></h2><span class="note" data-i18n="hoverHint"></span></div>
+      <div id="strip"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2 data-i18n="driftsTitle"></h2><span class="note" id="drift-count"></span></div>
+      <div class="table-scroll"><table id="drifts"></table></div>
     </section>
   </div>
 
-  <section class="panel">
-    <div class="panel-head"><h2 data-i18n="throttleTitle"></h2><span class="note" data-i18n="throttleNote"></span></div>
-    <div class="throttle" id="throttle"></div>
-  </section>
+  <!-- CORNERS -->
+  <div class="tab" id="tab-corners" role="tabpanel" hidden>
+    <div class="grid-corner">
+      <section class="panel">
+        <div class="panel-head"><h2 data-i18n="cornersTitle"></h2><span class="eyebrow" id="corner-count"></span></div>
+        <div class="seg" role="group"><button id="cs-trouble" data-i18n="sortTrouble"></button><button id="cs-order" data-i18n="sortOrder"></button></div>
+        <div class="corners" id="corner-list"></div>
+      </section>
+      <section class="panel" id="corner-detail"></section>
+    </div>
+  </div>
 
-  <section class="panel strip">
-    <div class="panel-head"><h2 data-i18n="runTitle"></h2><span class="note" data-i18n="hoverHint"></span></div>
-    <div id="strip"></div>
-  </section>
+  <!-- TECHNIQUES -->
+  <div class="tab" id="tab-techniques" role="tabpanel" hidden>
+    <section class="panel">
+      <div class="panel-head"><h2 data-i18n="techSummary"></h2><span class="note" id="tech-scope"></span></div>
+      <ul class="insights" id="tech-insights"></ul>
+    </section>
+    <div class="two">
+      <section class="panel">
+        <div class="panel-head"><h2 data-i18n="techRate"></h2><span class="note" data-i18n="techRateNote"></span></div>
+        <div class="bars" id="tech-bars"></div>
+        <div class="table-scroll"><table id="tech-table"></table></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2 data-i18n="causes"></h2><span class="note" data-i18n="causesNote"></span></div>
+        <div class="bars" id="cause-bars"></div>
+      </section>
+    </div>
+    <div class="two">
+      <section class="panel">
+        <div class="panel-head"><h2 data-i18n="byKind"></h2></div>
+        <div class="table-scroll"><table class="matrix" id="kind-matrix"></table></div>
+        <span class="note" data-i18n="byKindNote"></span>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2 data-i18n="habits"></h2><span class="note" data-i18n="habitsNote"></span></div>
+        <div id="habits"></div>
+        <div class="legend" id="tech-legend"></div>
+      </section>
+    </div>
+  </div>
 
-  <section class="panel">
-    <div class="panel-head"><h2 data-i18n="evoTitle"></h2><span class="note" id="evo-scope"></span></div>
-    <div class="multiples" id="multiples"></div>
-  </section>
-
-  <section class="panel">
-    <div class="panel-head"><h2 data-i18n="driftsTitle"></h2><span class="note" id="drift-count"></span></div>
-    <div class="table-scroll"><table id="drifts"></table></div>
-  </section>
-
-  <div class="two">
-    <section class="panel"><h2 data-i18n="byCar"></h2><div class="table-scroll"><table id="by-car"></table></div></section>
-    <section class="panel"><h2 data-i18n="byRoad"></h2><div class="table-scroll"><table id="by-track"></table></div></section>
+  <!-- PROGRESS -->
+  <div class="tab" id="tab-progress" role="tabpanel" hidden>
+    <section class="panel">
+      <div class="panel-head"><h2 data-i18n="evoTitle"></h2><span class="note" id="evo-scope"></span></div>
+      <div class="multiples" id="multiples"></div>
+    </section>
+    <div class="two">
+      <section class="panel"><h2 data-i18n="byCar"></h2><div class="table-scroll"><table id="by-car"></table></div></section>
+      <section class="panel"><h2 data-i18n="byRoad"></h2><div class="table-scroll"><table id="by-track"></table></div></section>
+    </div>
   </div>
 
   <footer id="foot"></footer>
@@ -232,82 +316,126 @@ footer { font-size: 12px; color: var(--muted); }
   const $ = (id) => document.getElementById(id);
   const NS = "http://www.w3.org/2000/svg";
 
-  /* ---------- i18n ---------- */
   const I18N = {
     fr: {
       telemetry: "télémétrie", road: "Route", car: "Voiture", session: "Session", language: "Langue",
+      tabs: { session: "Session", corners: "Virages", techniques: "Techniques", progress: "Progression" },
       coaching: "Coaching", mapTitle: "La route, virage par virage", thisSession: "Cette session", allSessions: "Toutes les sessions",
-      cornersTitle: "Virages à travailler", throttleTitle: "Accélérateur en glisse", throttleNote: "Le but : doser entre 40 et 90 %, sans jamais revenir à 0",
+      sessionCorners: "Virages de ce run", clickCorner: "Clique pour le détail",
+      cornersTitle: "Virages", sortTrouble: "Les plus traîtres", sortOrder: "Dans l'ordre",
+      throttleTitle: "Accélérateur en glisse", throttleNote: "Le but : doser entre 40 et 90 %, sans jamais revenir à 0",
       runTitle: "Télémétrie du run", hoverHint: "Survole les courbes pour lire les valeurs", evoTitle: "Évolution d'une session à l'autre",
       driftsTitle: "Les glisses du run", byCar: "Par voiture", byRoad: "Par route",
+      techSummary: "Ce qui marche, ce qui casse", techRate: "Réussite par technique de lancement", techRateNote: "Glisses de toutes les sessions filtrées",
+      causes: "Pourquoi ça casse", causesNote: "Cause principale de chaque raté",
+      byKind: "Technique × type de virage", byKindNote: "Réussies / tentatives. Plus la case est foncée, plus la technique marche sur ce type de virage.",
+      habits: "Tes réflexes, session par session", habitsNote: "Part de chaque technique de lancement",
       allRoads: "Toutes les routes", allCars: "Toutes les voitures", noSession: "Aucune session pour ce filtre",
       totals: (n, km, d) => `${n} session${n > 1 ? "s" : ""} · ${km} km roulés · ${d} glisses analysées`,
-      foot: g => `Mis à jour le ${g}. Données : appli Drift Logger, environ 90 mesures par seconde. Angle de dérive = angle entre l'axe de la voiture et sa trajectoire.`,
+      foot: g => `Mis à jour le ${g}. Données : appli Drift Logger, environ 90 mesures par seconde. Angle de dérive = angle entre l'axe de la voiture et sa trajectoire. Une glisse est réussie si elle se termine sans choc, ou avec un contact léger en sortie (moins de 10 km/h perdus).`,
       meta: (min, km, d, cov) => `${min} min · ${km} km · ${d} glisses · ${cov} % de la route`,
-      kpi: { clean_pct: "glisses terminées proprement", avg_angle: "angle moyen en glisse", lift_pct: "du temps en glisse, pied levé", cs_late: "contre-braquages tardifs (> 0,5 s)", impacts: "chocs", spins: "quasi tête-à-queue" },
+      kpi: { clean_pct: "glisses réussies", avg_score: "score moyen des glisses", lift_pct: "du temps en glisse, pied levé", stabs_per_min: "à-coups d'accélérateur / min", impacts_heavy: "chocs francs", spins: "quasi tête-à-queue" },
       impactsSplit: (g, d) => `${g} en grip · ${d} en glisse`, vsPrev: "vs session préc.", firstHere: "première session ici",
       prio: "Priorité n° 1", nextEx: "Exercice pour la prochaine session", target: "Objectif", issuesT: "Ce qui coince", older: "Conseils précédents",
       coachThis: "Conseils de cette session", coachLast: d => "Derniers conseils · " + d, noCoach: "Pas encore de conseils. Après ton prochain run, demande l'analyse.",
       angle: "Angle de dérive", grip: "grip", deg60: "60° et +", impact: "Choc", spin: "Quasi tête-à-queue", lift: "Pied levé en glisse", lock: "Arrière bloqué",
-      cumulLegend: "Cumul de toutes les sessions sur cette route. Plus le halo est grand, plus le virage pose problème (chocs ×3, tête-à-queue ×2, contre-braquage tardif, arrière bloqué).",
+      cumulLegend: "Cumul de toutes les sessions. Plus le halo est grand, plus le virage casse souvent.",
       pickSession: "Choisis une session pour voir la route.", C: "V", corner: "Virage",
       kind: { hairpin: "épingle", tight: "serré", fast: "rapide" }, dir: { left: "à gauche", right: "à droite" },
-      cornersFound: n => `${n} virages détectés`,
-      passes: n => `${n} passage${n > 1 ? "s" : ""}`, driftsN: n => `${n} glisse${n > 1 ? "s" : ""}`, avg: "moy.", entry: "entrée",
-      chips: { impacts: n => `${n} choc${n > 1 ? "s" : ""}`, spins: n => `${n} T-À-Q`, late: n => `${n} CB tardif`, lifts: n => `${n} pied levé`, none: "RAS" },
-      cornerTip: c => `${c.impacts} choc · ${c.spins} tête-à-queue · ${c.late_cs} contre-braq. tardif · ${c.lifts} pied levé`,
-      evImpact: k => `Choc ${k === "drift" ? "en glisse" : "en grip"}`, arriving: "arrivée à", revs: "régime à", footOff: "s à 0",
+      cornersFound: n => `${n} virages`, gripN: n => `${n} passage${n > 1 ? "s" : ""} en grip`, passes: n => `${n} passage${n > 1 ? "s" : ""}`, driftsN: n => `${n} glisse${n > 1 ? "s" : ""}`, avg: "moy.", entry: "entrée",
+      treacherous: "traître", ofN: (a, b) => `${a}/${b} réussis`,
+      evImpact: k => `Choc ${k === "drift" ? "en glisse" : "en grip"}`, arriving: "arrivée à", revs: "régime à", footOff: "s à 0", lost: "perdus",
       rows: ["Angle de dérive", "Accélérateur", "Vitesse"], thr: "gaz", brk: "frein", gear: "rapport", wheel: "volant",
-      evo: { clean_pct: "Glisses propres", lift_pct: "Pied levé en glisse", stabs_per_min: "À-coups d'accélérateur / min", mid: "Accélérateur dosé (40–90 %)", cs_late: "Contre-braquages tardifs", impacts_per_km: "Chocs par km", spins: "Quasi tête-à-queue", avg_angle: "Angle moyen en glisse" },
+      evo: { clean_pct: "Glisses réussies", avg_score: "Score moyen", lift_pct: "Pied levé en glisse", stabs_per_min: "À-coups d'accélérateur / min", mid: "Accélérateur dosé (40–90 %)", heavy_km: "Chocs francs par km", cs_late: "Contre-braquages tardifs", avg_angle: "Angle moyen en glisse" },
       evoScope: n => n < 2 ? "La courbe se construit à partir de la 2e session" : `${n} sessions`,
-      table: ["Temps", "Virage", "Rapport", "Entrée", "Sortie", "Angle moy.", "Angle max", "Gaz moy.", "Pied levé", "À-coups", "Fin"],
-      outcome: { clean: "propre", impact: "choc", spin: "tête-à-queue" },
-      agg: ["Sessions", "km", "Glisses", "Propres", "Angle moy.", "Chocs/km"],
+      table: ["Temps", "Virage", "Lancement", "Rapport", "Entrée", "Angle moy.", "Angle max", "Pied levé", "Dosé", "Score", "Fin"],
+      outcome: { clean: "réussie", exit_touch: "contact léger en sortie", impact: "choc", spin: "tête-à-queue", bogged: "glisse éteinte" },
+      agg: ["Sessions", "km", "Glisses", "Réussies", "Angle moy.", "Chocs francs/km"],
       bands: { off: "pied levé (0–5 %)", low: "bas (5–40 %)", mid: "dosé (40–90 %)", full: "à fond (90–100 %)" },
       stabsDrift: "à-coups plein gaz ↔ pied levé par minute de glisse", stabsGrip: "par minute hors glisse, pour comparer",
       stabsHint: "Un à-coup = passer de plus de 85 % à moins de 10 % (ou l'inverse) en moins de 0,35 s.",
+      tech: { transition: "enchaînement", feint: "appel-contre-appel", clutch: "clutch kick", brake: "freinage", lift: "lever de pied", power: "gaz", other: "autre", grip: "passage en grip" },
+      reason: { too_fast: "entrée trop rapide", rear_lock: "arrière bloqué", lift: "pied levé", late_cs: "contre-braquage tardif", over_angle: "trop d'angle", line: "placement", exit_wide: "sortie trop large", understeer: "sous-virage en grip" },
+      cd: { rate: "réussite", entryOk: "entrée quand ça passe", entryKo: "entrée quand ça casse", brake: "début du freinage", angle: "angle moyen réussi", before: "m avant",
+        insights: "Ce que disent les données", byTech: "Par technique de lancement", vsTitle: "Réussis vs ratés", attempts: "Tous les passages", map: "Tes trajectoires dans ce virage",
+        vsRows: ["Vitesse d'entrée", "Début du freinage", "Angle moyen", "Pied levé en glisse", "Score moyen"], ok: "Réussis", ko: "Ratés",
+        cols: ["Session", "Lancement", "Entrée", "Freinage", "Angle", "Pied levé", "Score", "Résultat"], noBrake: "pas de frein",
+        mapLegendOk: "passage réussi", mapLegendKo: "passage raté", empty: "Pas encore de passage enregistré dans ce virage.", none: "–" },
+      gi: {
+        best: (t, r, n) => `Ta technique la plus fiable : ${t}, ${r} % de réussite sur ${n} glisses.`,
+        worst: (t, r, n) => `La moins fiable : ${t}, ${r} % sur ${n} glisses.`,
+        cause: (c, n, p) => `Première cause de ratés : ${c} (${n} fois, ${p} % des ratés).`,
+        drift: (d, g) => `${d} % de tes glisses réussissent, contre ${g} % de tes passages en grip.`,
+        reflex: (t, p) => `Réflexe dominant : ${t} pour ${p} % de tes lancements.`,
+        tre: (list) => `Virages traîtres en ce moment : ${list}.`,
+      },
       up: "montée", down: "descente", nf: "fr-FR",
     },
     en: {
       telemetry: "telemetry", road: "Road", car: "Car", session: "Session", language: "Language",
+      tabs: { session: "Session", corners: "Corners", techniques: "Techniques", progress: "Progress" },
       coaching: "Coaching", mapTitle: "The road, corner by corner", thisSession: "This session", allSessions: "All sessions",
-      cornersTitle: "Corners to work on", throttleTitle: "Throttle while drifting", throttleNote: "Goal: modulate between 40 and 90%, never back to 0",
+      sessionCorners: "Corners in this run", clickCorner: "Click for details",
+      cornersTitle: "Corners", sortTrouble: "Most treacherous", sortOrder: "In road order",
+      throttleTitle: "Throttle while drifting", throttleNote: "Goal: modulate between 40 and 90%, never back to 0",
       runTitle: "Run telemetry", hoverHint: "Hover the traces to read values", evoTitle: "Progress from session to session",
       driftsTitle: "Drifts in this run", byCar: "By car", byRoad: "By road",
+      techSummary: "What works, what breaks", techRate: "Success by initiation technique", techRateNote: "Drifts from all filtered sessions",
+      causes: "Why it breaks", causesNote: "Main cause of each failure",
+      byKind: "Technique × corner type", byKindNote: "Successful / attempts. The darker the cell, the better the technique works on that corner type.",
+      habits: "Your reflexes, session by session", habitsNote: "Share of each initiation technique",
       allRoads: "All roads", allCars: "All cars", noSession: "No session for this filter",
       totals: (n, km, d) => `${n} session${n > 1 ? "s" : ""} · ${km} km driven · ${d} drifts analysed`,
-      foot: g => `Updated ${g}. Data: Drift Logger app, about 90 samples per second. Slip angle = angle between the car's axis and its direction of travel.`,
+      foot: g => `Updated ${g}. Data: Drift Logger app, about 90 samples per second. Slip angle = angle between the car's axis and its direction of travel. A drift counts as successful if it ends with no impact, or with a light touch on exit (under 10 km/h lost).`,
       meta: (min, km, d, cov) => `${min} min · ${km} km · ${d} drifts · ${cov}% of the road`,
-      kpi: { clean_pct: "drifts finished cleanly", avg_angle: "average drift angle", lift_pct: "of drift time with foot off", cs_late: "late counter-steers (> 0.5 s)", impacts: "wall contacts", spins: "near spins" },
+      kpi: { clean_pct: "successful drifts", avg_score: "average drift score", lift_pct: "of drift time with foot off", stabs_per_min: "throttle stabs / min", impacts_heavy: "hard impacts", spins: "near spins" },
       impactsSplit: (g, d) => `${g} in grip · ${d} drifting`, vsPrev: "vs prev. session", firstHere: "first session here",
       prio: "Priority #1", nextEx: "Drill for next session", target: "Target", issuesT: "What's going wrong", older: "Earlier advice",
       coachThis: "Advice for this session", coachLast: d => "Latest advice · " + d, noCoach: "No advice yet. After your next run, ask for the analysis.",
-      angle: "Slip angle", grip: "grip", deg60: "60° and up", impact: "Wall contact", spin: "Near spin", lift: "Foot off while drifting", lock: "Rear locked",
-      cumulLegend: "All sessions on this road combined. The bigger the halo, the more trouble the corner causes (impacts ×3, spins ×2, late counter-steer, rear lock).",
+      angle: "Slip angle", grip: "grip", deg60: "60° and up", impact: "Impact", spin: "Near spin", lift: "Foot off while drifting", lock: "Rear locked",
+      cumulLegend: "All sessions combined. The bigger the halo, the more often the corner goes wrong.",
       pickSession: "Pick a session to see the road.", C: "C", corner: "Corner",
       kind: { hairpin: "hairpin", tight: "tight", fast: "fast" }, dir: { left: "left", right: "right" },
-      cornersFound: n => `${n} corners detected`,
-      passes: n => `${n} pass${n > 1 ? "es" : ""}`, driftsN: n => `${n} drift${n > 1 ? "s" : ""}`, avg: "avg", entry: "entry",
-      chips: { impacts: n => `${n} impact${n > 1 ? "s" : ""}`, spins: n => `${n} spin${n > 1 ? "s" : ""}`, late: n => `${n} late CS`, lifts: n => `${n} lift${n > 1 ? "s" : ""}`, none: "OK" },
-      cornerTip: c => `${c.impacts} impact · ${c.spins} spin · ${c.late_cs} late counter-steer · ${c.lifts} lift`,
-      evImpact: k => k === "drift" ? "Impact while drifting" : "Impact in grip", arriving: "arriving at", revs: "revs at", footOff: "s at 0",
+      cornersFound: n => `${n} corners`, gripN: n => `${n} grip pass${n > 1 ? "es" : ""}`, passes: n => `${n} pass${n > 1 ? "es" : ""}`, driftsN: n => `${n} drift${n > 1 ? "s" : ""}`, avg: "avg", entry: "entry",
+      treacherous: "treacherous", ofN: (a, b) => `${a}/${b} successful`,
+      evImpact: k => k === "drift" ? "Impact while drifting" : "Impact in grip", arriving: "arriving at", revs: "revs at", footOff: "s at 0", lost: "lost",
       rows: ["Slip angle", "Throttle", "Speed"], thr: "throttle", brk: "brake", gear: "gear", wheel: "wheel",
-      evo: { clean_pct: "Clean drifts", lift_pct: "Foot off while drifting", stabs_per_min: "Throttle stabs / min", mid: "Modulated throttle (40–90%)", cs_late: "Late counter-steers", impacts_per_km: "Impacts per km", spins: "Near spins", avg_angle: "Average drift angle" },
+      evo: { clean_pct: "Successful drifts", avg_score: "Average score", lift_pct: "Foot off while drifting", stabs_per_min: "Throttle stabs / min", mid: "Modulated throttle (40–90%)", heavy_km: "Hard impacts per km", cs_late: "Late counter-steers", avg_angle: "Average drift angle" },
       evoScope: n => n < 2 ? "Lines start from the 2nd session" : `${n} sessions`,
-      table: ["Time", "Corner", "Gear", "Entry", "Exit", "Avg angle", "Max angle", "Avg throttle", "Foot off", "Stabs", "End"],
-      outcome: { clean: "clean", impact: "impact", spin: "spin" },
-      agg: ["Sessions", "km", "Drifts", "Clean", "Avg angle", "Impacts/km"],
+      table: ["Time", "Corner", "Initiation", "Gear", "Entry", "Avg angle", "Max angle", "Foot off", "Modulated", "Score", "End"],
+      outcome: { clean: "successful", exit_touch: "light touch on exit", impact: "impact", spin: "spin", bogged: "drift died" },
+      agg: ["Sessions", "km", "Drifts", "Successful", "Avg angle", "Hard impacts/km"],
       bands: { off: "foot off (0–5%)", low: "low (5–40%)", mid: "modulated (40–90%)", full: "flat out (90–100%)" },
       stabsDrift: "full-throttle ↔ foot-off stabs per minute of drifting", stabsGrip: "per minute in grip, for comparison",
       stabsHint: "A stab = going from above 85% to below 10% (or back) in under 0.35 s.",
+      tech: { transition: "transition", feint: "feint", clutch: "clutch kick", brake: "braking", lift: "lift-off", power: "power over", other: "other", grip: "grip pass" },
+      reason: { too_fast: "too fast on entry", rear_lock: "rear lock", lift: "foot off", late_cs: "late counter-steer", over_angle: "too much angle", line: "line / placement", exit_wide: "ran wide on exit", understeer: "understeer in grip" },
+      cd: { rate: "success", entryOk: "entry when it works", entryKo: "entry when it fails", brake: "braking starts", angle: "avg angle, successful", before: "m before",
+        insights: "What the data says", byTech: "By initiation technique", vsTitle: "Successful vs failed", attempts: "Every pass", map: "Your lines through this corner",
+        vsRows: ["Entry speed", "Braking starts", "Average angle", "Foot off while drifting", "Average score"], ok: "Successful", ko: "Failed",
+        cols: ["Session", "Initiation", "Entry", "Braking", "Angle", "Foot off", "Score", "Result"], noBrake: "no brake",
+        mapLegendOk: "successful pass", mapLegendKo: "failed pass", empty: "No pass recorded in this corner yet.", none: "–" },
+      gi: {
+        best: (t, r, n) => `Your most reliable technique: ${t}, ${r}% success over ${n} drifts.`,
+        worst: (t, r, n) => `The least reliable: ${t}, ${r}% over ${n} drifts.`,
+        cause: (c, n, p) => `Main cause of failures: ${c} (${n} times, ${p}% of failures).`,
+        drift: (d, g) => `${d}% of your drifts succeed, against ${g}% of your grip passes.`,
+        reflex: (t, p) => `Dominant reflex: ${t} for ${p}% of your initiations.`,
+        tre: (list) => `Treacherous corners right now: ${list}.`,
+      },
       up: "uphill", down: "downhill", nf: "en-GB",
     },
   };
-  const state = { track: "all", car: "all", session: null, mode: "session", lang: "fr" };
+  const state = { track: "all", car: "all", session: null, mode: "session", lang: "fr", tab: "session", corner: null, csort: "trouble" };
   try { Object.assign(state, JSON.parse(localStorage.getItem("dl-prefs") || "{}")); } catch (e) {}
+  const h = location.hash.replace("#", "");
+  if (["session", "corners", "techniques", "progress"].includes(h)) state.tab = h;
   const L = () => I18N[state.lang] || I18N.fr;
-  const pct = (v, d = 0) => fmt(v, d) + (state.lang === "fr" ? " %" : "%");
   const fmt = (v, d = 0) => (v === null || v === undefined || Number.isNaN(v)) ? "–" : Number(v).toLocaleString(L().nf, { minimumFractionDigits: d, maximumFractionDigits: d });
+  const pct = (v, d = 0) => (v === null || v === undefined) ? "–" : fmt(v, d) + (state.lang === "fr" ? " %" : "%");
+  const colon = () => state.lang === "fr" ? " : " : ": ";
+  const TECH_ORDER = ["power", "lift", "feint", "brake", "clutch", "transition", "other"];
+  const tcol = t => `var(--t-${t})`;
 
   function prettyCar(s) {
     return s.replace(/^ks_/, "").split("_").map(w => {
@@ -323,9 +451,10 @@ footer { font-size: 12px; color: var(--muted); }
     const dirs = { uphill: L().up, downhill: L().down };
     return lay ? base + " · " + (dirs[lay] || lay) : base;
   }
+  const shortDate = d => d.slice(11, 16) + " · " + d.slice(8, 10) + "/" + d.slice(5, 7);
 
   const history = D.history.slice().sort((a, b) => a.id.localeCompare(b.id));
-  history.forEach(s => { s.mid = s.thr_bands ? s.thr_bands.mid : null; });
+  history.forEach(s => { s.mid = s.thr_bands ? s.thr_bands.mid : null; s.heavy_km = s.distance_km > 0.05 ? (s.impacts_heavy ?? s.impacts) / s.distance_km : null; });
 
   const tip = $("tip");
   function showTip(html, ev) {
@@ -337,19 +466,11 @@ footer { font-size: 12px; color: var(--muted); }
     tip.style.left = x + "px"; tip.style.top = y + "px";
   }
   function hideTip() { tip.hidden = true; }
-  function el(tag, attrs, parent) {
-    const e = document.createElementNS(NS, tag);
-    for (const k in attrs) e.setAttribute(k, attrs[k]);
-    if (parent) parent.appendChild(e);
-    return e;
-  }
-  function txt(parent, x, y, s, attrs) {
-    const t = el("text", Object.assign({ x, y, "font-size": 11, fill: "var(--muted)", "font-family": "IBM Plex Mono, monospace" }, attrs || {}), parent);
-    t.textContent = s; return t;
-  }
+  function el(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+  function txt(parent, x, y, s, attrs) { const t = el("text", Object.assign({ x, y, "font-size": 11, fill: "var(--muted)", "font-family": "IBM Plex Mono, monospace" }, attrs || {}), parent); t.textContent = s; return t; }
 
-  /* ---------- filters ---------- */
-  function filtered() { return history.filter(s => (state.track === "all" || s.track === state.track) && (state.car === "all" || s.car === state.car)); }
+  /* ---------- filters & tabs ---------- */
+  const filtered = () => history.filter(s => (state.track === "all" || s.track === state.track) && (state.car === "all" || s.car === state.car));
   function fillSelect(id, values, current, labeler, allLabel) {
     const sel = $(id); sel.innerHTML = "";
     if (allLabel) { const o = document.createElement("option"); o.value = "all"; o.textContent = allLabel; sel.appendChild(o); }
@@ -357,33 +478,45 @@ footer { font-size: 12px; color: var(--muted); }
     sel.value = values.includes(current) || (allLabel && current === "all") ? current : (allLabel ? "all" : values[values.length - 1]);
     return sel.value;
   }
-  function renderFilters() {
+  function renderChrome() {
     state.track = fillSelect("f-track", [...new Set(history.map(s => s.track))], state.track, prettyTrack, L().allRoads);
     state.car = fillSelect("f-car", [...new Set(history.map(s => s.car))], state.car, prettyCar, L().allCars);
     const list = filtered().map(s => s.id);
     if (!list.includes(state.session)) state.session = list[list.length - 1] || null;
-    fillSelect("f-session", list, state.session, id => { const s = history.find(h => h.id === id); return s.date + " · " + prettyCar(s.car); });
+    fillSelect("f-session", list, state.session, id => { const s = history.find(x => x.id === id); return s.date + " · " + prettyCar(s.car); });
     document.querySelectorAll("[data-i18n]").forEach(n => { n.textContent = L()[n.dataset.i18n]; });
     document.documentElement.lang = state.lang;
     $("l-fr").setAttribute("aria-pressed", state.lang === "fr"); $("l-en").setAttribute("aria-pressed", state.lang === "en");
     $("m-session").setAttribute("aria-pressed", state.mode === "session"); $("m-cumul").setAttribute("aria-pressed", state.mode === "cumul");
-  }
-  function renderTotals() {
+    $("cs-trouble").setAttribute("aria-pressed", state.csort === "trouble"); $("cs-order").setAttribute("aria-pressed", state.csort === "order");
+    const tr = currentTrack(), tre = tr ? tr.corners.filter(c => c.stats && c.stats.treacherous).length : 0;
+    document.querySelectorAll("#tabs button").forEach(b => {
+      const k = b.dataset.tab; b.setAttribute("aria-selected", state.tab === k);
+      b.innerHTML = L().tabs[k] + (k === "corners" && tre ? `<span class="count">${tre} ${L().treacherous}${tre > 1 && state.lang === "fr" ? "s" : ""}</span>` : "");
+      $("tab-" + k).hidden = state.tab !== k;
+    });
     const km = history.reduce((a, s) => a + s.distance_km, 0), dr = history.reduce((a, s) => a + s.drifts, 0);
     $("totals").textContent = L().totals(history.length, fmt(km, 1), dr);
     $("foot").textContent = L().foot(D.generated);
   }
 
-  /* ---------- session band ---------- */
+  const currentSession = () => D.sessions[state.session];
+  const currentTrack = () => { const s = history.find(x => x.id === state.session); return s ? D.tracks[s.track] : (state.track !== "all" ? D.tracks[state.track] : Object.values(D.tracks)[0]); };
+  const sessIds = () => new Set(filtered().map(s => s.id));
+  const cornerName = c => `${L().kind[c.kind]} ${L().dir[c.dir]}`;
+  const sevClass = st => !st || !st.attempts ? "" : st.treacherous ? "s3" : st.rate < 100 ? (st.rate < 75 ? "s2" : "s1") : "s0";
+  const outColor = o => ({ clean: "var(--good)", exit_touch: "var(--good)", impact: "var(--crit)", spin: "var(--serious)", bogged: "var(--warn)" })[o];
+
+  /* ---------- session tab ---------- */
   const KPI = [
-    { k: "clean_pct", unit: "%", better: "up" }, { k: "avg_angle", unit: "°", better: null },
-    { k: "lift_pct", unit: "%", better: "down" }, { k: "cs_late", unit: "", better: "down" },
-    { k: "impacts", unit: "", better: "down", sub: s => L().impactsSplit(s.impacts_grip, s.impacts_drift) },
+    { k: "clean_pct", unit: "%", better: "up" }, { k: "avg_score", unit: "", better: "up" },
+    { k: "lift_pct", unit: "%", better: "down", d: 0 }, { k: "stabs_per_min", unit: "", better: "down" },
+    { k: "impacts_heavy", unit: "", better: "down", sub: s => L().impactsSplit(s.impacts_grip, s.impacts_drift) },
     { k: "spins", unit: "", better: "down" },
   ];
-  function prevOf(s) { return history.filter(h => h.id < s.id && h.track === s.track && h.car === s.car).pop(); }
+  const prevOf = s => history.filter(x => x.id < s.id && x.track === s.track && x.car === s.car).pop();
   function renderBand() {
-    const s = history.find(h => h.id === state.session), meta = $("session-meta"), kp = $("kpis");
+    const s = history.find(x => x.id === state.session), meta = $("session-meta"), kp = $("kpis");
     if (!s) { meta.innerHTML = `<h2>${L().noSession}</h2>`; kp.innerHTML = ""; return; }
     const prev = prevOf(s);
     meta.innerHTML = `<h2>${prettyTrack(s.track)}</h2><span>${prettyCar(s.car)}</span>
@@ -391,10 +524,9 @@ footer { font-size: 12px; color: var(--muted); }
     kp.innerHTML = "";
     KPI.forEach(c => {
       const v = s[c.k]; let delta = "";
-      if (prev && prev[c.k] !== null && v !== null) {
-        const dv = v - prev[c.k];
-        const good = c.better === null ? null : (c.better === "up" ? dv > 0 : dv < 0);
-        const cls = dv === 0 || good === null ? "flat" : (good ? "up" : "down");
+      if (prev && prev[c.k] !== null && prev[c.k] !== undefined && v !== null) {
+        const dv = v - prev[c.k], good = c.better === "up" ? dv > 0 : dv < 0;
+        const cls = Math.abs(dv) < 0.05 ? "flat" : (good ? "up" : "down");
         delta = `<span class="delta ${cls}">${dv > 0 ? "▲" : dv < 0 ? "▼" : "="} ${fmt(Math.abs(dv))}${c.unit} ${L().vsPrev}</span>`;
       } else if (!c.sub) delta = `<span class="delta flat">${L().firstHere}</span>`;
       if (c.sub) delta += `<span class="delta flat">${c.sub(s)}</span>`;
@@ -403,8 +535,6 @@ footer { font-size: 12px; color: var(--muted); }
       kp.appendChild(div);
     });
   }
-
-  /* ---------- coaching ---------- */
   function renderCoach() {
     const box = $("coach"); box.innerHTML = "";
     const entries = D.coaching.slice().sort((a, b) => b.session.localeCompare(a.session));
@@ -415,22 +545,18 @@ footer { font-size: 12px; color: var(--muted); }
     const left = document.createElement("div"); left.className = "coach-card";
     left.innerHTML = `<span class="eyebrow">${L().prio}</span><div class="headline">${c.headline}</div>
       <ul>${c.good.map(g => `<li>${g}</li>`).join("")}</ul>
-      <div class="exercise"><span class="eyebrow">${L().nextEx}</span><span>${c.exercise}</span><span class="muted">${L().target}${state.lang === "fr" ? " : " : ": "}${c.target}</span></div>`;
+      <div class="exercise"><span class="eyebrow">${L().nextEx}</span><span>${c.exercise}</span><span class="muted">${L().target}${colon()}${c.target}</span></div>`;
     const right = document.createElement("div"); right.className = "coach-card";
     right.innerHTML = `<span class="eyebrow">${L().issuesT}</span>` + c.issues.map(i => `<div class="issue"><b>${i.title}</b><span>${i.detail}</span></div>`).join("");
     const older = entries.filter(e => e !== cur);
-    if (older.length) right.innerHTML += `<span class="eyebrow">${L().older}</span><div class="older">${older.map(o => `<div class="row"><span class="mono">${o.date}</span><span>${(o[state.lang] || o.fr).headline}</span></div>`).join("")}</div>`;
+    if (older.length) right.innerHTML += `<span class="eyebrow">${L().older}</span><div class="older">${older.map(o => `<div class="row"><span class="mono">${shortDate(D.history.find(x => x.id === o.session)?.date || o.date + " 00:00")}</span><span>${(o[state.lang] || o.fr).headline}</span></div>`).join("")}</div>`;
     box.append(left, right);
   }
 
-  /* ---------- map ---------- */
   const STATUS = { impact: "var(--crit)", spin: "var(--serious)", lift: "var(--warn)", lock: "var(--warn)" };
   const BINS = [[0, 12, "--a0"], [12, 25, "--a1"], [25, 40, "--a2"], [40, 60, "--a3"], [60, 999, "--a4"]];
   const binLabel = i => [L().grip, "12–25°", "25–40°", "40–60°", L().deg60][i];
   const binOf = a => BINS.findIndex(b => a >= b[0] && a < b[1]);
-  const currentSession = () => D.sessions[state.session];
-  const currentTrack = () => { const s = history.find(h => h.id === state.session); return s ? D.tracks[s.track] : null; };
-
   function drawSymbol(g, type, x, y) {
     const c = STATUS[type];
     if (type === "impact") el("circle", { cx: x, cy: y, r: 6.5, fill: c, stroke: "var(--surface)", "stroke-width": 2 }, g);
@@ -439,9 +565,13 @@ footer { font-size: 12px; color: var(--muted); }
     else el("circle", { cx: x, cy: y, r: 4, fill: c, stroke: "var(--surface)", "stroke-width": 1.5 }, g);
   }
   function symSvg(type) { const s = document.createElementNS(NS, "svg"); s.setAttribute("width", 16); s.setAttribute("height", 16); s.setAttribute("viewBox", "0 0 16 16"); drawSymbol(s, type, 8, 8); return s.outerHTML; }
-  const sevColor = c => c.impacts > 0 ? "var(--crit)" : c.spins > 0 ? "var(--serious)" : (c.trouble > 0 ? "var(--warn)" : "var(--hair)");
-  const sevClass = c => c.impacts > 0 ? "s3" : c.spins > 0 ? "s2" : (c.trouble > 0 ? "s1" : "");
-  const cornerName = c => `${L().kind[c.kind]} ${L().dir[c.dir]}`;
+  function eventTip(e) {
+    const c = e.corner ? ` · ${L().C}${e.corner}` : "";
+    if (e.type === "impact") return `<b>${L().evImpact(e.kind)}</b>${c}<br>${fmt(e.t, 1)} s · ${L().arriving} ${fmt(e.speed)} km/h · ${fmt(e.loss)} km/h ${L().lost}`;
+    if (e.type === "spin") return `<b>${L().spin}</b>${c}<br>${fmt(e.t, 1)} s · ${fmt(e.angle)}° · ${fmt(e.speed)} km/h`;
+    if (e.type === "lock") return `<b>${L().lock}</b>${c}<br>${fmt(e.t, 1)} s · ${L().revs} ${fmt(e.rpm)} rpm · ${fmt(e.speed)} km/h`;
+    return `<b>${L().lift}</b>${c}<br>${fmt(e.t, 1)} s · ${fmt(e.duration, 2)} ${L().footOff} · ${fmt(e.angle_before)}° → ${fmt(e.angle_after)}°`;
+  }
 
   function renderMap() {
     const box = $("map"); box.innerHTML = "";
@@ -463,21 +593,21 @@ footer { font-size: 12px; color: var(--muted); }
       const flush = () => { if (run.length > 1) el("polyline", { points: run.join(" "), fill: "none", stroke: `var(${BINS[bin][2]})`, "stroke-width": 3.5, "stroke-linecap": "round", "stroke-linejoin": "round" }, g); };
       for (let i = 0; i < t.x.length; i++) {
         const b = binOf(t.angle[i]), p = P(t.x[i], t.z[i]).map(v => v.toFixed(1)).join(",");
-        if (b !== bin || t.seg[i] !== seg) { if (t.seg[i] === seg) run.push(p); flush(); run = [p]; bin = b; seg = t.seg[i]; }
-        else run.push(p);
+        if (b !== bin || t.seg[i] !== seg) { if (t.seg[i] === seg) run.push(p); flush(); run = [p]; bin = b; seg = t.seg[i]; } else run.push(p);
       }
       flush();
     } else el("polyline", { points: ref, fill: "none", stroke: "var(--a0)", "stroke-width": 3, "stroke-linecap": "round", "stroke-linejoin": "round" }, g);
-
-    const maxT = Math.max(1, ...tr.corners.map(c => c.trouble));
+    const maxF = Math.max(1, ...tr.corners.map(c => c.stats ? c.stats.attempts - c.stats.success : 0));
     tr.corners.forEach(c => {
-      const [x, y] = P(c.x, c.z), cg = el("g", { "data-corner": c.id }, svg);
-      if (state.mode === "cumul" && c.trouble > 0) el("circle", { cx: x, cy: y, r: 10 + 16 * c.trouble / maxT, fill: sevColor(c), "fill-opacity": .22, stroke: sevColor(c), "stroke-width": 1.5 }, cg);
-      el("circle", { cx: x, cy: y, r: 9.5, fill: "var(--surface)", stroke: "var(--ink)", "stroke-width": 1.2, class: "badge" }, cg);
+      const [x, y] = P(c.x, c.z), cg = el("g", { "data-corner": c.id, style: "cursor:pointer" }, svg), st = c.stats || {};
+      const fails = (st.attempts || 0) - (st.success || 0);
+      if (state.mode === "cumul" && fails > 0) el("circle", { cx: x, cy: y, r: 10 + 16 * fails / maxF, fill: st.treacherous ? "var(--crit)" : "var(--serious)", "fill-opacity": .2, stroke: st.treacherous ? "var(--crit)" : "var(--serious)", "stroke-width": 1.5 }, cg);
+      el("circle", { cx: x, cy: y, r: 9.5, fill: "var(--surface)", stroke: st.treacherous ? "var(--crit)" : "var(--ink)", "stroke-width": st.treacherous ? 2 : 1.2, class: "badge" }, cg);
       txt(cg, x, y + 4, c.id, { "text-anchor": "middle", "font-family": "Saira Condensed, Arial Narrow, sans-serif", "font-size": 12.5, "font-weight": 600, fill: "var(--ink)" });
       el("circle", { cx: x, cy: y, r: 16, fill: "transparent" }, cg);
-      cg.addEventListener("mousemove", e => { showTip(`<b>${L().corner} ${c.id}</b> · ${cornerName(c)} · ${fmt(Math.abs(c.turn))}°<br>${L().passes(c.passes)} · ${L().driftsN(c.drifts)}${c.avg_angle ? " · " + fmt(c.avg_angle) + "° " + L().avg : ""}<br>${L().cornerTip(c)}`, e); highlightCorner(c.id, true); });
-      cg.addEventListener("mouseleave", () => { hideTip(); highlightCorner(c.id, false); });
+      cg.addEventListener("mousemove", e => showTip(`<b>${L().corner} ${c.id}</b> · ${cornerName(c)} · ${fmt(Math.abs(c.turn))}°<br>${L().ofN(st.success || 0, st.attempts || 0)}${st.treacherous ? " · " + L().treacherous : ""}`, e));
+      cg.addEventListener("mouseleave", hideTip);
+      cg.addEventListener("click", () => openCorner(c.id));
     });
     if (state.mode === "session") {
       const order = { lift: 0, lock: 1, spin: 2, impact: 3 }, eg = el("g", {}, svg);
@@ -485,69 +615,62 @@ footer { font-size: 12px; color: var(--muted); }
         const [x, y] = P(e.x, e.z), sg = el("g", {}, eg);
         drawSymbol(sg, e.type, x, y);
         el("circle", { cx: x, cy: y, r: 11, fill: "transparent" }, sg);
-        sg.addEventListener("mousemove", ev => showTip(eventTip(e), ev));
-        sg.addEventListener("mouseleave", hideTip);
+        sg.addEventListener("mousemove", ev => showTip(eventTip(e), ev)); sg.addEventListener("mouseleave", hideTip);
       });
       $("map-legend").innerHTML = `<span class="eyebrow">${L().angle}</span>` + BINS.map((b, i) => `<span class="ramp"><i style="background:var(${b[2]})"></i>${binLabel(i)}</span>`).join("") +
         ["impact", "spin", "lift", "lock"].map(t => `<span class="sym">${symSvg(t)}${L()[t]}</span>`).join("");
     } else $("map-legend").innerHTML = `<span>${L().cumulLegend}</span>`;
   }
-  function eventTip(e) {
-    const c = e.corner ? ` · ${L().C}${e.corner}` : "";
-    if (e.type === "impact") return `<b>${L().evImpact(e.kind)}</b>${c}<br>${fmt(e.t, 1)} s · ${L().arriving} ${fmt(e.speed)} km/h · ${fmt(e.g, 1)} g`;
-    if (e.type === "spin") return `<b>${L().spin}</b>${c}<br>${fmt(e.t, 1)} s · ${fmt(e.angle)}° · ${fmt(e.speed)} km/h`;
-    if (e.type === "lock") return `<b>${L().lock}</b>${c}<br>${fmt(e.t, 1)} s · ${L().revs} ${fmt(e.rpm)} rpm · ${fmt(e.speed)} km/h`;
-    return `<b>${L().lift}</b>${c}<br>${fmt(e.t, 1)} s · ${fmt(e.duration, 2)} ${L().footOff} · ${fmt(e.angle_before)}° → ${fmt(e.angle_after)}°`;
-  }
-  function highlightCorner(id, on) { document.querySelectorAll(".corner").forEach(r => r.classList.toggle("hl", on && r.dataset.id == id)); }
 
-  function renderCorners() {
-    const box = $("corners"); box.innerHTML = "";
-    const tr = currentTrack(); if (!tr) { $("corner-count").textContent = ""; return; }
-    $("corner-count").textContent = L().cornersFound(tr.corners.length);
-    tr.corners.slice().sort((a, b) => b.trouble - a.trouble || a.id - b.id).forEach(c => {
-      const ch = L().chips, chips = [];
-      if (c.impacts) chips.push(`<span class="chip"><span class="dot" style="background:var(--crit)"></span>${ch.impacts(c.impacts)}</span>`);
-      if (c.spins) chips.push(`<span class="chip"><span class="dot" style="background:var(--serious)"></span>${ch.spins(c.spins)}</span>`);
-      if (c.late_cs) chips.push(`<span class="chip"><span class="dot" style="background:var(--warn)"></span>${ch.late(c.late_cs)}</span>`);
-      if (c.lifts) chips.push(`<span class="chip">${ch.lifts(c.lifts)}</span>`);
-      if (!chips.length) chips.push(`<span class="chip">${ch.none}</span>`);
-      const row = document.createElement("div"); row.className = "corner"; row.dataset.id = c.id;
-      row.innerHTML = `<span class="stripe ${sevClass(c)}"></span><span class="num">${L().C}${c.id}</span>
-        <span class="desc"><span><b>${cornerName(c)}</b> · ${fmt(Math.abs(c.turn))}°</span>
-        <span>${L().driftsN(c.drifts)}${c.avg_angle ? " · " + fmt(c.avg_angle) + "° " + L().avg : ""}${c.avg_entry ? " · " + L().entry + " " + fmt(c.avg_entry) + " km/h" : ""} · ${L().passes(c.passes)}</span>
-        <span class="chips">${chips.join("")}</span></span>`;
-      row.addEventListener("mouseenter", () => { const b = document.querySelector(`[data-corner="${c.id}"] .badge`); if (b) b.setAttribute("stroke-width", 3); });
-      row.addEventListener("mouseleave", () => { document.querySelectorAll("[data-corner] .badge").forEach(b => b.setAttribute("stroke-width", 1.2)); });
+  function cornerRow(c, extra) {
+    const st = c.stats || { attempts: 0, success: 0 };
+    const b = document.createElement("button"); b.className = "corner"; b.dataset.id = c.id;
+    if (state.tab === "corners" && state.corner === c.id) b.setAttribute("aria-current", "true");
+    const top = st.reasons && Object.keys(st.reasons).length ? Object.entries(st.reasons).sort((a, b) => b[1] - a[1])[0][0] : null;
+    b.innerHTML = `<span class="stripe ${sevClass(st)}"></span><span class="num">${L().C}${c.id}</span>
+      <span class="desc"><span><b>${cornerName(c)}</b> · ${fmt(Math.abs(c.turn))}°</span>
+      <span>${extra || (top ? L().reason[top] : (st.attempts ? L().passes(st.attempts) : ""))}</span>${st.treacherous ? `<span class="pill">${L().treacherous}</span>` : ""}</span>
+      <span class="rate">${st.attempts ? pct(st.rate) : "–"}<small>${st.success}/${st.attempts}</small></span>`;
+    b.addEventListener("click", () => openCorner(c.id));
+    return b;
+  }
+  function renderSessionCorners() {
+    const box = $("session-corners"); box.innerHTML = "";
+    const tr = currentTrack(); if (!tr || !tr.attempts) return;
+    const mine = tr.attempts.filter(a => a.sid === state.session);
+    const ids = [...new Set(mine.map(a => a.corner))].sort((a, b) => a - b);
+    ids.forEach(id => {
+      const c = tr.corners[id - 1], a = mine.filter(x => x.corner === id);
+      const okN = a.filter(x => x.success).length;
+      const label = a.map(x => `${L().tech[x.technique]} → ${L().outcome[x.outcome]}`).join(" · ");
+      const row = cornerRow(c, label);
+      row.querySelector(".stripe").className = "stripe " + (okN === a.length ? "s0" : "s3");
+      row.querySelector(".rate").innerHTML = `${okN}/${a.length}<small>${fmt(Math.max(...a.map(x => x.score)))} pts</small>`;
       box.appendChild(row);
     });
   }
 
-  /* ---------- throttle ---------- */
   function renderThrottle() {
-    const box = $("throttle"), s = history.find(h => h.id === state.session);
+    const box = $("throttle"), s = history.find(x => x.id === state.session);
     if (!s || !s.thr_bands) { box.innerHTML = ""; return; }
-    const keys = ["off", "low", "mid", "full"], cols = ["--a1", "--a2", "--a3", "--a4"], b = s.thr_bands;
-    const prev = prevOf(s);
+    const keys = ["off", "low", "mid", "full"], cols = ["--a1", "--a2", "--a3", "--a4"], b = s.thr_bands, prev = prevOf(s);
     const dlt = (v, p, better) => {
       if (p === null || p === undefined) return "";
-      const dv = v - p, good = better === "up" ? dv > 0 : dv < 0, cls = dv === 0 ? "flat" : good ? "up" : "down";
+      const dv = v - p, good = better === "up" ? dv > 0 : dv < 0, cls = Math.abs(dv) < 0.05 ? "flat" : good ? "up" : "down";
       return `<span class="delta ${cls}">${dv > 0 ? "▲" : dv < 0 ? "▼" : "="} ${fmt(Math.abs(dv), 1)} ${L().vsPrev}</span>`;
     };
-    box.innerHTML = `<div><div class="bandbar" role="img" aria-label="${L().throttleTitle}">${keys.map((k, i) => `<span style="width:${b[k]}%;background:var(${cols[i]})" title="${L().bands[k]} ${pct(b[k])}"></span>`).join("")}</div>
+    box.innerHTML = `<div><div class="bandbar" role="img" aria-label="${L().throttleTitle}">${keys.map((k, i) => `<span style="width:${b[k]}%;background:var(${cols[i]})"></span>`).join("")}</div>
       <div class="bandlegend">${keys.map((k, i) => `<div><b>${pct(b[k])}</b><span><i style="background:var(${cols[i]})"></i>${L().bands[k]}</span>${k === "off" || k === "mid" ? dlt(b[k], prev && prev.thr_bands ? prev.thr_bands[k] : null, k === "mid" ? "up" : "down") : ""}</div>`).join("")}</div></div>
       <div class="stabs"><div class="item"><span class="big">${fmt(s.stabs_per_min)}</span><span>${L().stabsDrift}</span>${dlt(s.stabs_per_min, prev ? prev.stabs_per_min : null, "down")}</div>
       <div class="item"><span class="big muted">${fmt(s.stabs_per_min_grip)}</span><span>${L().stabsGrip}</span></div>
       <span class="note">${L().stabsHint}</span></div>`;
   }
 
-  /* ---------- run telemetry ---------- */
   function renderStrip() {
     const box = $("strip"); box.innerHTML = "";
     const ses = currentSession(); if (!ses) return;
     const t = ses.trace, T = t.t[t.t.length - 1] || 1;
-    const W = 1000, Lm = 52, R = 12, rowH = 92, gap = 34, top = 24;
-    const vmax = Math.ceil(Math.max(...t.speed) / 50) * 50;
+    const W = 1000, Lm = 52, R = 12, rowH = 92, gap = 34, top = 24, vmax = Math.ceil(Math.max(...t.speed) / 50) * 50;
     const rows = [
       { key: "angle", unit: "°", max: 90, ticks: [0, 30, 60, 90], area: true },
       { key: "thr", unit: "%", max: 1, scale: 100, ticks: [0, .4, 1], band: [.4, .9] },
@@ -559,13 +682,9 @@ footer { font-size: 12px; color: var(--muted); }
     rows.forEach((r, ri) => {
       const y0 = top + ri * (rowH + gap), Y = v => y0 + rowH - (v / r.max) * rowH;
       if (r.band) el("rect", { x: Lm, width: W - Lm - R, y: Y(r.band[1]), height: Y(r.band[0]) - Y(r.band[1]), fill: "var(--accent-wash)" }, svg);
-      r.ticks.forEach(tk => {
-        el("line", { x1: Lm, x2: W - R, y1: Y(tk), y2: Y(tk), stroke: tk === 0 ? "var(--axis)" : "var(--hair)", "stroke-width": 1 }, svg);
-        txt(svg, Lm - 6, Y(tk) + 4, fmt(tk * (r.scale || 1)), { "text-anchor": "end" });
-      });
+      r.ticks.forEach(tk => { el("line", { x1: Lm, x2: W - R, y1: Y(tk), y2: Y(tk), stroke: tk === 0 ? "var(--axis)" : "var(--hair)", "stroke-width": 1 }, svg); txt(svg, Lm - 6, Y(tk) + 4, fmt(tk * (r.scale || 1)), { "text-anchor": "end" }); });
       txt(svg, Lm, y0 - 10, `${L().rows[ri]} (${r.unit})`, { "font-size": 12, fill: "var(--ink-2)", "font-family": "IBM Plex Sans, sans-serif", "font-weight": 500 });
-      let d = "";
-      t.t.forEach((tt, i) => { d += (i ? "L" : "M") + X(tt).toFixed(1) + " " + Y(Math.min(t[r.key][i], r.max)).toFixed(1); });
+      let d = ""; t.t.forEach((tt, i) => { d += (i ? "L" : "M") + X(tt).toFixed(1) + " " + Y(Math.min(t[r.key][i], r.max)).toFixed(1); });
       if (r.area) el("path", { d: d + `L${X(T)} ${Y(0)}L${X(0)} ${Y(0)}Z`, fill: "var(--accent)", "fill-opacity": .16 }, svg);
       el("path", { d, fill: "none", stroke: "var(--accent)", "stroke-width": 1.6, "stroke-linejoin": "round" }, svg);
       if (ri === 0) {
@@ -589,11 +708,156 @@ footer { font-size: 12px; color: var(--muted); }
     hit.addEventListener("mouseleave", () => { ch.setAttribute("visibility", "hidden"); hideTip(); });
   }
 
-  /* ---------- progress ---------- */
-  const EVO = [
-    { k: "clean_pct", u: "%" }, { k: "lift_pct", u: "%", d: 1 }, { k: "stabs_per_min", u: "", d: 1 }, { k: "mid", u: "%", d: 1 },
-    { k: "cs_late", u: "" }, { k: "impacts_per_km", u: "", d: 1 }, { k: "spins", u: "" }, { k: "avg_angle", u: "°" },
-  ];
+  function outcomeCell(o, reasons) {
+    const r = reasons && reasons.length ? ` <span class="muted">· ${L().reason[reasons[0]]}</span>` : "";
+    return `<span class="status"><span class="dot" style="background:${outColor(o)}"></span>${L().outcome[o]}${r}</span>`;
+  }
+  function renderDrifts() {
+    const ses = currentSession(), tb = $("drifts");
+    if (!ses) { tb.innerHTML = ""; $("drift-count").textContent = ""; return; }
+    $("drift-count").textContent = L().driftsN(ses.drifts.length);
+    tb.innerHTML = `<thead><tr>${L().table.map((h, i) => `<th${i === 2 || i === 10 ? ' class="l"' : ""}>${h}</th>`).join("")}</tr></thead><tbody>` + ses.drifts.map(d =>
+      `<tr><td class="mono">${fmt(d.t0, 1)} s</td><td>${d.corner ? L().C + d.corner : "–"}</td><td class="l"><span class="status"><span class="dot" style="background:${tcol(d.technique)}"></span>${L().tech[d.technique]}</span></td><td>${d.gear}</td><td>${fmt(d.entry)} km/h</td><td>${fmt(d.avg_angle)}°</td><td>${fmt(d.max_angle)}°</td><td>${pct(d.lift_pct)}</td><td>${pct(d.thr_mid)}</td><td><span class="score">${d.score}</span></td><td class="l">${outcomeCell(d.outcome, d.reasons)}</td></tr>`
+    ).join("") + "</tbody>";
+  }
+
+  /* ---------- corners tab ---------- */
+  function openCorner(id) { state.corner = id; state.tab = "corners"; save(); renderAll(); window.scrollTo({ top: 0 }); }
+  function cornerAttempts(tr, id) { const ids = sessIds(); return (tr.attempts || []).filter(a => a.corner === id && ids.has(a.sid)); }
+  function renderCornerList() {
+    const box = $("corner-list"); box.innerHTML = "";
+    const tr = currentTrack(); if (!tr) return;
+    $("corner-count").textContent = L().cornersFound(tr.corners.length);
+    const list = tr.corners.slice();
+    if (state.csort === "trouble") list.sort((a, b) => (b.stats.treacherous - a.stats.treacherous) || ((b.stats.attempts - b.stats.success) - (a.stats.attempts - a.stats.success)) || (a.stats.rate ?? 101) - (b.stats.rate ?? 101) || a.id - b.id);
+    if (state.corner === null || !tr.corners[state.corner - 1]) state.corner = list[0] ? list[0].id : null;
+    list.forEach(c => box.appendChild(cornerRow(c)));
+  }
+  function bar(name, color, value, max, label, title) {
+    return `<div class="bar" ${title ? `title="${title}"` : ""}><span class="name"><span class="dot" style="background:${color}"></span>${name}</span><span class="track"><span class="fill" style="display:block;width:${max ? Math.max(2, 100 * value / max) : 0}%;background:${color}"></span></span><span class="val">${label}</span></div>`;
+  }
+  function renderCornerDetail() {
+    const box = $("corner-detail"), tr = currentTrack();
+    if (!tr || state.corner === null) { box.innerHTML = ""; return; }
+    const c = tr.corners[state.corner - 1], st = c.stats, att = cornerAttempts(tr, c.id);
+    const cd = L().cd;
+    let html = `<div class="cd-head"><span class="big">${L().C}${c.id}</span><h2>${cornerName(c)} · ${fmt(Math.abs(c.turn))}°</h2>${st.treacherous ? `<span class="pill">${L().treacherous}</span>` : ""}<span class="note">${L().passes(st.attempts)}</span></div>`;
+    if (!st.attempts) { box.innerHTML = html + `<p class="note">${cd.empty}</p>`; return; }
+    html += `<div class="tiles">
+      <div class="tile"><span class="v">${pct(st.rate)}</span><span class="l">${cd.rate}</span><span class="s">${st.success}/${st.attempts}</span></div>
+      <div class="tile"><span class="v">${st.ok.entry !== null ? fmt(st.ok.entry) + " km/h" : "–"}</span><span class="l">${cd.entryOk}</span><span class="s">${cd.entryKo}${colon()}${st.ko.entry !== null ? fmt(st.ko.entry) + " km/h" : "–"}</span></div>
+      <div class="tile"><span class="v">${st.ok.brake_dist !== null ? fmt(st.ok.brake_dist) + " m" : "–"}</span><span class="l">${cd.brake}</span><span class="s">${cd.before}</span></div>
+      <div class="tile"><span class="v">${st.ok.angle !== null ? fmt(st.ok.angle) + "°" : "–"}</span><span class="l">${cd.angle}</span><span class="s">&nbsp;</span></div></div>`;
+    const ins = (st.insights && st.insights[state.lang]) || [];
+    if (ins.length) html += `<h3>${cd.insights}</h3><ul class="insights">${ins.map(i => `<li><span>${i}</span></li>`).join("")}</ul>`;
+    html += `<div class="cd-grid"><div class="bars"><h3>${cd.byTech}</h3>` +
+      Object.entries(st.techniques).sort((a, b) => b[1].n - a[1].n).map(([k, v]) => bar(L().tech[k], tcol(k), v.rate, 100, `${v.ok}/${v.n}`)).join("") + `</div>
+      <div><h3>${cd.vsTitle}</h3><table class="vs"><thead><tr><th></th><th class="ok">${cd.ok}</th><th class="ko">${cd.ko}</th></tr></thead><tbody>
+      ${[["entry", " km/h"], ["brake_dist", " m"], ["angle", "°"], ["lift", state.lang === "fr" ? " %" : "%"], ["score", ""]].map(([k, u], i) =>
+        `<tr><td>${cd.vsRows[i]}</td><td>${st.ok[k] !== null ? fmt(st.ok[k]) + u : "–"}</td><td>${st.ko[k] !== null ? fmt(st.ko[k]) + u : "–"}</td></tr>`).join("")}
+      </tbody></table></div></div>`;
+    html += `<h3>${cd.map}</h3><div class="map-box" id="corner-map"></div><div class="legend"><span class="ramp"><i style="background:var(--good-line)"></i>${cd.mapLegendOk}</span><span class="ramp"><i style="background:var(--crit)"></i>${cd.mapLegendKo}</span><span class="sym">${symSvg("impact")}${L().impact}</span></div>`;
+    html += `<h3>${cd.attempts}</h3><div class="table-scroll"><table id="att-table"><thead><tr>${cd.cols.map((h, i) => `<th${i === 0 || i === 1 || i === 7 ? ' class="l"' : ""}>${h}</th>`).join("")}</tr></thead><tbody>` +
+      att.map((a, i) => `<tr class="hov" data-i="${i}"><td class="l mono">${shortDate(history.find(x => x.id === a.sid).date)}</td><td class="l"><span class="status"><span class="dot" style="background:${tcol(a.technique)}"></span>${L().tech[a.technique]}</span></td><td>${fmt(a.entry)} km/h</td><td>${a.brake_dist !== null ? fmt(a.brake_dist) + " m" : cd.noBrake}</td><td>${a.kind === "drift" ? fmt(a.avg_angle) + "°" : "–"}</td><td>${a.lift_pct !== null ? pct(a.lift_pct) : "–"}</td><td><span class="score">${a.score}</span></td><td class="l">${outcomeCell(a.outcome, a.reasons)}</td></tr>`).join("") + `</tbody></table></div>`;
+    box.innerHTML = html;
+    drawCornerMap($("corner-map"), tr, c, att);
+    box.querySelectorAll("#att-table tr.hov").forEach(r => {
+      r.addEventListener("mouseenter", () => highlightPass(+r.dataset.i, true));
+      r.addEventListener("mouseleave", () => highlightPass(+r.dataset.i, false));
+    });
+  }
+  function highlightPass(i, on) {
+    document.querySelectorAll("#corner-map [data-pass]").forEach(p => {
+      const me = +p.dataset.pass === i;
+      p.setAttribute("stroke-opacity", on ? (me ? 1 : .15) : .75);
+      p.setAttribute("stroke-width", on && me ? 4.5 : 2.5);
+    });
+  }
+  function drawCornerMap(box, tr, c, att) {
+    const span = Math.max(c.pos1 - c.pos0, 0.004), lo = c.pos0 - span * 0.8 - 0.004, hi = c.pos1 + span * 0.8 + 0.004;
+    const refPts = tr.ref_trace.pos.map((p, i) => [p, tr.ref_trace.x[i], tr.ref_trace.z[i]]).filter(q => q[0] >= lo && q[0] <= hi);
+    const passes = att.map(a => {
+      const t = D.sessions[a.sid].trace, pts = [];
+      for (let i = 0; i < t.t.length; i++) if (t.pos[i] >= lo && t.pos[i] <= hi && Math.abs(t.t[i] - a.t) < 12) pts.push([t.x[i], t.z[i]]);
+      return pts;
+    });
+    const all = refPts.map(q => [q[1], q[2]]).concat(...passes);
+    if (all.length < 2) { box.innerHTML = ""; return; }
+    const xs = all.map(p => p[0]), zs = all.map(p => p[1]);
+    const minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs);
+    const W = 640, H = 300, pad = 22, k = Math.min((W - 2 * pad) / Math.max(maxx - minx, 1), (H - 2 * pad) / Math.max(maxz - minz, 1));
+    const ox = (W - (maxx - minx) * k) / 2, oz = (H - (maxz - minz) * k) / 2;
+    const P = (x, z) => [((x - minx) * k + ox).toFixed(1), ((z - minz) * k + oz).toFixed(1)];
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": L().cd.map }, box);
+    el("polyline", { points: refPts.map(q => P(q[1], q[2]).join(",")).join(" "), fill: "none", stroke: "var(--hair)", "stroke-width": Math.max(14, 9 * k), "stroke-linecap": "round", "stroke-linejoin": "round" }, svg);
+    passes.forEach((pts, i) => {
+      if (pts.length < 2) return;
+      const a = att[i];
+      const pl = el("polyline", { points: pts.map(p => P(p[0], p[1]).join(",")).join(" "), fill: "none", stroke: a.success ? "var(--good-line)" : "var(--crit)", "stroke-width": 2.5, "stroke-opacity": .75, "stroke-linecap": "round", "stroke-linejoin": "round", "data-pass": i }, svg);
+      pl.addEventListener("mousemove", e => showTip(`<b>${shortDate(history.find(x => x.id === a.sid).date)}</b><br>${L().tech[a.technique]} · ${fmt(a.entry)} km/h<br>${L().outcome[a.outcome]}${a.reasons.length ? " · " + L().reason[a.reasons[0]] : ""}`, e));
+      pl.addEventListener("mouseleave", hideTip);
+    });
+    att.forEach(a => {
+      D.sessions[a.sid].events.filter(e => e.type === "impact" && e.pos >= lo && e.pos <= hi && Math.abs(e.t - a.t) < 12).forEach(e => { const [x, y] = P(e.x, e.z); drawSymbol(svg, "impact", +x, +y); });
+    });
+  }
+
+  /* ---------- techniques tab ---------- */
+  function filteredAttempts() {
+    const ids = sessIds(), out = [];
+    Object.values(D.tracks).forEach(t => (t.attempts || []).forEach(a => { if (ids.has(a.sid)) out.push(Object.assign({ corner_kind: t.corners[a.corner - 1].kind, track: t.track }, a)); }));
+    return out;
+  }
+  function renderTechniques() {
+    const att = filteredAttempts(), drifts = att.filter(a => a.kind === "drift"), grip = att.filter(a => a.kind === "grip");
+    $("tech-scope").textContent = `${L().driftsN(drifts.length)} · ${L().gripN(grip.length)}`;
+    const by = {};
+    drifts.forEach(a => { const s = by[a.technique] = by[a.technique] || { n: 0, ok: 0, score: 0, angle: 0, entry: 0 }; s.n++; s.ok += a.success; s.score += a.score; s.angle += a.avg_angle; s.entry += a.entry; });
+    const rows = TECH_ORDER.filter(t => by[t]).map(t => { const s = by[t]; return { t, n: s.n, ok: s.ok, rate: Math.round(100 * s.ok / s.n), score: Math.round(s.score / s.n), angle: Math.round(s.angle / s.n), entry: Math.round(s.entry / s.n) }; }).sort((a, b) => b.rate - a.rate || b.n - a.n);
+    $("tech-bars").innerHTML = rows.map(r => bar(L().tech[r.t], tcol(r.t), r.rate, 100, `${pct(r.rate)} · ${r.ok}/${r.n}`)).join("");
+    const th = state.lang === "fr" ? ["Lancement", "Glisses", "Score moy.", "Angle moy.", "Entrée moy."] : ["Initiation", "Drifts", "Avg score", "Avg angle", "Avg entry"];
+    $("tech-table").innerHTML = `<thead><tr>${th.map((x, i) => `<th${i ? "" : ' class="l"'}>${x}</th>`).join("")}</tr></thead><tbody>` + rows.map(r => `<tr><td class="l">${L().tech[r.t]}</td><td>${r.n}</td><td><span class="score">${r.score}</span></td><td>${r.angle}°</td><td>${r.entry} km/h</td></tr>`).join("") + "</tbody>";
+    const causes = {};
+    att.filter(a => !a.success).forEach(a => { const r = a.reasons[0] || "line"; causes[r] = (causes[r] || 0) + 1; });
+    const cl = Object.entries(causes).sort((a, b) => b[1] - a[1]), cmax = Math.max(1, ...cl.map(x => x[1])), nfail = cl.reduce((a, x) => a + x[1], 0);
+    $("cause-bars").innerHTML = cl.map(([k, n]) => bar(L().reason[k], "var(--serious)", n, cmax, `${n} · ${pct(Math.round(100 * n / Math.max(nfail, 1)))}`)).join("") || `<p class="note">–</p>`;
+    // matrix
+    const kinds = ["hairpin", "tight", "fast"], techs = TECH_ORDER.filter(t => by[t]);
+    const cell = (k, t) => { const a = drifts.filter(x => x.corner_kind === k && x.technique === t); if (!a.length) return `<span class="muted">–</span>`; const ok = a.filter(x => x.success).length, r = ok / a.length; return `<span class="cell" style="background:color-mix(in srgb, var(--accent) ${Math.round(12 + 60 * r)}%, transparent);color:${r > .6 ? "#fff" : "var(--ink)"}">${ok}/${a.length}</span>`; };
+    $("kind-matrix").innerHTML = `<thead><tr><th class="l"></th>${kinds.map(k => `<th>${L().kind[k]}</th>`).join("")}</tr></thead><tbody>` + techs.map(t => `<tr><td class="l"><span class="status"><span class="dot" style="background:${tcol(t)}"></span>${L().tech[t]}</span></td>${kinds.map(k => `<td>${cell(k, t)}</td>`).join("")}</tr>`).join("") + "</tbody>";
+    // habits per session
+    const hb = $("habits"); hb.innerHTML = "";
+    const list = filtered();
+    const svg = el("svg", { viewBox: `0 0 600 ${list.length * 34 + 10}`, role: "img", "aria-label": L().habits }, hb);
+    svg.style.width = "100%"; svg.style.height = "auto";
+    list.forEach((s, i) => {
+      const y = 6 + i * 34, tot = Object.values(s.techniques || {}).reduce((a, b) => a + b, 0) || 1;
+      txt(svg, 0, y + 15, shortDate(s.date), { "font-size": 11.5, fill: "var(--ink-2)" });
+      let x = 110;
+      TECH_ORDER.forEach(t => {
+        const n = (s.techniques || {})[t] || 0; if (!n) return;
+        const w = (600 - 110) * n / tot;
+        const r = el("rect", { x: x, y, width: Math.max(1, w - 2), height: 22, rx: 2, fill: tcol(t) }, svg);
+        if (w > 30) txt(svg, x + 6, y + 15, Math.round(100 * n / tot) + "%", { fill: "#fff", "font-size": 11 });
+        r.addEventListener("mousemove", e => showTip(`<b>${L().tech[t]}</b><br>${n}/${tot} · ${pct(Math.round(100 * n / tot))}`, e)); r.addEventListener("mouseleave", hideTip);
+        x += w;
+      });
+    });
+    $("tech-legend").innerHTML = TECH_ORDER.filter(t => list.some(s => (s.techniques || {})[t])).map(t => `<span class="ramp"><i class="sw" style="background:${tcol(t)}"></i>${L().tech[t]}</span>`).join("");
+    // insights
+    const gi = L().gi, out = [];
+    const solid = rows.filter(r => r.n >= 3);
+    if (solid.length) { const b = solid[0]; out.push(gi.best(L().tech[b.t], b.rate, b.n)); const w = solid[solid.length - 1]; if (w !== b && w.rate < b.rate) out.push(gi.worst(L().tech[w.t], w.rate, w.n)); }
+    if (cl.length) out.push(gi.cause(L().reason[cl[0][0]], cl[0][1], Math.round(100 * cl[0][1] / nfail)));
+    if (drifts.length && grip.length) out.push(gi.drift(Math.round(100 * drifts.filter(a => a.success).length / drifts.length), Math.round(100 * grip.filter(a => a.success).length / grip.length)));
+    const dom = rows.slice().sort((a, b) => b.n - a.n)[0]; if (dom && drifts.length) out.push(gi.reflex(L().tech[dom.t], Math.round(100 * dom.n / drifts.length)));
+    const tr = currentTrack(); if (tr) { const tre = tr.corners.filter(c => c.stats.treacherous).map(c => L().C + c.id); if (tre.length) out.push(gi.tre(tre.join(", "))); }
+    $("tech-insights").innerHTML = out.map(i => `<li><span>${i}</span></li>`).join("");
+  }
+
+  /* ---------- progress tab ---------- */
+  const EVO = [{ k: "clean_pct", u: "%" }, { k: "avg_score", u: "" }, { k: "lift_pct", u: "%", d: 1 }, { k: "stabs_per_min", u: "", d: 1 },
+    { k: "mid", u: "%", d: 1 }, { k: "heavy_km", u: "", d: 1 }, { k: "cs_late", u: "" }, { k: "avg_angle", u: "°" }];
   function renderEvo() {
     const box = $("multiples"); box.innerHTML = "";
     const list = filtered();
@@ -607,10 +871,7 @@ footer { font-size: 12px; color: var(--muted); }
       const maxV = Math.max(1, ...vals) * 1.15, nice = maxV <= 5 ? Math.ceil(maxV) : Math.ceil(maxV / 10) * 10;
       const Y = v => T + (H - T - B) - (v / nice) * (H - T - B), n = list.length;
       const X = i => n <= 1 ? (Lm + (W - Lm - R) / 2) : Lm + i * (W - Lm - R) / (n - 1);
-      [0, nice / 2, nice].forEach(tk => {
-        el("line", { x1: Lm, x2: W - R, y1: Y(tk), y2: Y(tk), stroke: tk === 0 ? "var(--axis)" : "var(--hair)", "stroke-width": 1 }, svg);
-        txt(svg, Lm - 5, Y(tk) + 3.5, fmt(tk, tk % 1 ? 1 : 0), { "text-anchor": "end", "font-size": 10 });
-      });
+      [0, nice / 2, nice].forEach(tk => { el("line", { x1: Lm, x2: W - R, y1: Y(tk), y2: Y(tk), stroke: tk === 0 ? "var(--axis)" : "var(--hair)", "stroke-width": 1 }, svg); txt(svg, Lm - 5, Y(tk) + 3.5, fmt(tk, tk % 1 ? 1 : 0), { "text-anchor": "end", "font-size": 10 }); });
       const pts = list.map((s, i) => (s[m.k] === null || s[m.k] === undefined) ? null : [X(i), Y(s[m.k]), s]).filter(Boolean);
       if (pts.length > 1) {
         const line = pts.map((p, i) => (i ? "L" : "M") + p[0] + " " + p[1]).join("");
@@ -619,51 +880,41 @@ footer { font-size: 12px; color: var(--muted); }
       }
       pts.forEach((p, i) => {
         el("circle", { cx: p[0], cy: p[1], r: i === pts.length - 1 ? 5 : 3.5, fill: "var(--accent)", stroke: "var(--surface)", "stroke-width": 2 }, svg);
-        const h = el("circle", { cx: p[0], cy: p[1], r: 12, fill: "transparent" }, svg);
-        h.addEventListener("mousemove", e => showTip(`<b>${p[2].date}</b><br>${prettyCar(p[2].car)}<br>${L().evo[m.k]}${state.lang === "fr" ? " : " : ": "}${fmt(p[2][m.k], m.d || 0)}${m.u}`, e));
-        h.addEventListener("mouseleave", hideTip);
+        const hc = el("circle", { cx: p[0], cy: p[1], r: 12, fill: "transparent" }, svg);
+        hc.addEventListener("mousemove", e => showTip(`<b>${p[2].date}</b><br>${prettyCar(p[2].car)}<br>${L().evo[m.k]}${colon()}${fmt(p[2][m.k], m.d || 0)}${m.u}`, e)); hc.addEventListener("mouseleave", hideTip);
       });
-      if (n) {
-        const d0 = list[0].date.slice(5, 10).split("-").reverse().join("/");
-        txt(svg, X(0), H - 3, d0, { "text-anchor": n <= 1 ? "middle" : "start", "font-size": 10 });
-        if (n > 1) txt(svg, X(n - 1), H - 3, list[n - 1].date.slice(5, 10).split("-").reverse().join("/"), { "text-anchor": "end", "font-size": 10 });
-      }
+      if (n) { txt(svg, X(0), H - 3, shortDate(list[0].date).slice(0, 5), { "text-anchor": n <= 1 ? "middle" : "start", "font-size": 10 }); if (n > 1) txt(svg, X(n - 1), H - 3, shortDate(list[n - 1].date).slice(0, 5), { "text-anchor": "end", "font-size": 10 }); }
       box.appendChild(wrap);
     });
-  }
-
-  /* ---------- tables ---------- */
-  const OUTC = { clean: "var(--good)", impact: "var(--crit)", spin: "var(--serious)" };
-  function renderDrifts() {
-    const ses = currentSession(), tb = $("drifts");
-    if (!ses) { tb.innerHTML = ""; $("drift-count").textContent = ""; return; }
-    $("drift-count").textContent = L().driftsN(ses.drifts.length);
-    tb.innerHTML = `<thead><tr>${L().table.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>` + ses.drifts.map(d =>
-      `<tr><td class="mono">${fmt(d.t0, 1)} s</td><td>${d.corner ? L().C + d.corner : "–"}</td><td>${d.gear}</td><td>${fmt(d.entry)} km/h</td><td>${fmt(d.exit)} km/h</td><td>${fmt(d.avg_angle)}°</td><td>${fmt(d.max_angle)}°</td><td>${pct(d.throttle * 100)}</td><td>${pct(d.lift_pct)}</td><td>${d.stabs ?? "–"}</td><td><span class="status"><span class="dot" style="background:${OUTC[d.outcome]}"></span>${L().outcome[d.outcome]}</span></td></tr>`
-    ).join("") + "</tbody>";
   }
   function aggTable(id, key, labeler) {
     const groups = {};
     history.forEach(s => (groups[s[key]] = groups[s[key]] || []).push(s));
     const rows = Object.entries(groups).map(([k, ss]) => {
       const km = ss.reduce((a, s) => a + s.distance_km, 0), dr = ss.reduce((a, s) => a + s.drifts, 0);
-      const clean = ss.reduce((a, s) => a + (s.clean_pct || 0) * s.drifts, 0) / Math.max(dr, 1);
-      const imp = ss.reduce((a, s) => a + s.impacts, 0), ang = ss.reduce((a, s) => a + (s.avg_angle || 0) * s.drifts, 0) / Math.max(dr, 1);
-      return `<tr><td>${labeler(k)}</td><td>${ss.length}</td><td>${fmt(km, 1)}</td><td>${dr}</td><td>${pct(clean)}</td><td>${fmt(ang)}°</td><td>${fmt(imp / Math.max(km, .01), 1)}</td></tr>`;
+      const ok = ss.reduce((a, s) => a + (s.clean_pct || 0) * s.drifts, 0) / Math.max(dr, 1);
+      const imp = ss.reduce((a, s) => a + (s.impacts_heavy ?? s.impacts), 0), ang = ss.reduce((a, s) => a + (s.avg_angle || 0) * s.drifts, 0) / Math.max(dr, 1);
+      return `<tr><td>${labeler(k)}</td><td>${ss.length}</td><td>${fmt(km, 1)}</td><td>${dr}</td><td>${pct(ok)}</td><td>${fmt(ang)}°</td><td>${fmt(imp / Math.max(km, .01), 1)}</td></tr>`;
     });
-    $(id).innerHTML = `<thead><tr><th>${key === "car" ? L().car : L().road}</th>${L().agg.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody>`;
+    $(id).innerHTML = `<thead><tr><th>${key === "car" ? L().car : L().road}</th>${L().agg.map(x => `<th>${x}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody>`;
   }
 
-  function save() { try { localStorage.setItem("dl-prefs", JSON.stringify({ track: state.track, car: state.car, mode: state.mode, lang: state.lang })); } catch (e) {} }
+  function save() { try { localStorage.setItem("dl-prefs", JSON.stringify({ track: state.track, car: state.car, mode: state.mode, lang: state.lang, tab: state.tab, corner: state.corner, csort: state.csort })); } catch (e) {} }
   function renderAll() {
-    renderFilters(); renderTotals(); renderBand(); renderCoach(); renderMap(); renderCorners(); renderThrottle(); renderStrip(); renderEvo(); renderDrifts();
-    aggTable("by-car", "car", prettyCar); aggTable("by-track", "track", prettyTrack);
+    renderChrome();
+    if (state.tab === "session") { renderBand(); renderCoach(); renderMap(); renderSessionCorners(); renderThrottle(); renderStrip(); renderDrifts(); }
+    if (state.tab === "corners") { renderCornerList(); renderCornerDetail(); }
+    if (state.tab === "techniques") renderTechniques();
+    if (state.tab === "progress") { renderEvo(); aggTable("by-car", "car", prettyCar); aggTable("by-track", "track", prettyTrack); }
   }
-  $("f-track").addEventListener("change", e => { state.track = e.target.value; state.session = null; save(); renderAll(); });
+  document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => { state.tab = b.dataset.tab; save(); renderAll(); }));
+  $("f-track").addEventListener("change", e => { state.track = e.target.value; state.session = null; state.corner = null; save(); renderAll(); });
   $("f-car").addEventListener("change", e => { state.car = e.target.value; state.session = null; save(); renderAll(); });
   $("f-session").addEventListener("change", e => { state.session = e.target.value; renderAll(); });
   $("m-session").addEventListener("click", () => { state.mode = "session"; save(); renderAll(); });
   $("m-cumul").addEventListener("click", () => { state.mode = "cumul"; save(); renderAll(); });
+  $("cs-trouble").addEventListener("click", () => { state.csort = "trouble"; save(); renderAll(); });
+  $("cs-order").addEventListener("click", () => { state.csort = "order"; save(); renderAll(); });
   $("l-fr").addEventListener("click", () => { state.lang = "fr"; save(); renderAll(); });
   $("l-en").addEventListener("click", () => { state.lang = "en"; save(); renderAll(); });
   renderAll();
