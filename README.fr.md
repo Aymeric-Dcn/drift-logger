@@ -23,6 +23,15 @@ Une appli dans le jeu enregistre l'état de la voiture environ 90 fois par secon
 
 Chaque glisse est aussi décomposée : comment elle a été lancée (enchaînement, appel-contre-appel, clutch kick, freinage, lever de pied, gaz), comment elle a été tenue, et comment elle s'est terminée. Un contact léger en sortie (moins de 10 km/h perdus) compte comme une réussite. Chaque passage dans chaque virage est comparé : réussite par virage et par technique, vitesse d'entrée et point de freinage des passages réussis et ratés, réflexe dominant, et cause probable de chaque raté (entrée trop rapide, pied levé, arrière bloqué, contre-braquage tardif, trop d'angle, placement).
 
+## Replay
+
+La voiture est redessinée vue du dessus : un rectangle avec la vitre claire à l'avant, les roues avant qui suivent le volant, et une flèche pour la vraie direction du déplacement. L'écart entre la flèche et le nez, c'est l'angle de dérive.
+
+- **Onglet Session → Replay** : tout le run avec une caméra qui suit la voiture (orientée selon la route ou carte fixe), une mini-carte, les contours de la voiture juste avant, et en direct vitesse, angle, rapport, pédales et volant. Chaque glisse du tableau a un bouton ▶, et un clic sur les courbes de télémétrie place le replay à cet instant.
+- **Onglet Virages → Rejouer le virage** : jusqu'à trois passages du même virage partent ensemble à l'entrée, pour voir qui freine plus tôt, qui met plus d'angle, qui tape. *Silhouettes* dessine la voiture toutes les 0,3 s.
+
+L'API Python d'AC ne donne pas le cap de la voiture : il est reconstruit en intégrant la vitesse de lacet, recalée en continu sur la direction de déplacement moins l'angle de dérive (environ 0,4° d'erreur médiane).
+
 Les virages sont détectés à partir de la courbure de la trajectoire (rayon inférieur à 90 m) et numérotés selon leur position le long de la route : un virage garde son numéro d'une session à l'autre. Chaque virage a ses statistiques cumulées (passages, glisses, angle moyen, chocs, tête-à-queue) et un score de difficulté.
 
 ## Organisation

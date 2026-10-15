@@ -10,6 +10,7 @@
   --crit: #d03b3b; --serious: #ec835a; --warn: #fab219;
   --a0: #b9c1cc; --a1: #86b6ef; --a2: #3987e5; --a3: #1c5cab; --a4: #0d366b;
   --t-power: #2a78d6; --t-lift: #eb6834; --t-feint: #1baf7a; --t-brake: #eda100; --t-clutch: #e87ba4; --t-transition: #008300; --t-other: #6250d6; --t-handbrake: #e34948; --t-grip: #b9c1cc;
+  --p1: #e8590c; --p2: #7048e8; --p3: #0b7f8f;
   --display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
   --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -20,6 +21,7 @@
     --hair: #243040; --axis: #34404f; --accent: #5b98ec; --accent-wash: #1a2a40; --good: #2fbf5a; --good-line: #2fbf5a;
     --a0: #3e4856; --a1: #1c5cab; --a2: #2a78d6; --a3: #5598e7; --a4: #9ec5f4;
     --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-handbrake: #e66767; --t-grip: #3e4856;
+    --p1: #ff8a3d; --p2: #9d80fb; --p3: #2bbcd2;
     color-scheme: dark;
   }
 }
@@ -28,6 +30,7 @@
   --hair: #243040; --axis: #34404f; --accent: #5b98ec; --accent-wash: #1a2a40; --good: #2fbf5a; --good-line: #2fbf5a;
   --a0: #3e4856; --a1: #1c5cab; --a2: #2a78d6; --a3: #5598e7; --a4: #9ec5f4;
   --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-handbrake: #e66767; --t-grip: #3e4856;
+  --p1: #ff8a3d; --p2: #9d80fb; --p3: #2bbcd2;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -171,6 +174,44 @@ tr.hov:hover td { background: var(--accent-wash); }
 #tip b { font-weight: 600; }
 footer { font-size: 12px; color: var(--muted); }
 
+/* replay */
+.btn { font: 500 13px var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--hair); border-radius: 6px; padding: 6px 10px; cursor: pointer; min-width: 34px; line-height: 1.2; }
+.btn:hover { border-color: var(--axis); }
+.btn[aria-pressed="true"] { background: var(--accent-wash); color: var(--accent); border-color: var(--accent); }
+.btn.mini { padding: 1px 7px; font-size: 10.5px; min-width: 0; }
+.replay { display: flex; flex-direction: column; gap: 10px; }
+.rp-stage { position: relative; border-radius: 8px; overflow: hidden; background: var(--bg); border: 1px solid var(--hair); }
+.rp-stage > svg { display: block; width: 100%; height: auto; }
+.rp-mini { position: absolute; top: 8px; right: 8px; background: var(--surface); opacity: .94; border: 1px solid var(--hair); border-radius: 6px; padding: 2px; }
+.rp-mini svg { display: block; width: 100%; height: auto; }
+.rp-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rp-bar input[type=range] { flex: 1 1 180px; min-width: 120px; accent-color: var(--p1); }
+.rp-play { min-width: 44px; background: var(--p1); color: #fff; border-color: var(--p1); }
+.rp-play:hover { border-color: var(--p1); filter: brightness(1.08); }
+.rp-time { font-size: 12px; color: var(--ink-2); min-width: 88px; text-align: right; }
+.hud { display: flex; flex-direction: column; gap: 4px; }
+.hud-row { display: grid; grid-template-columns: minmax(0, 1.25fr) 74px 74px 52px minmax(0, 2.6fr); gap: 4px 12px; align-items: center; font-size: 12.5px; padding: 4px 0; border-top: 1px solid var(--hair); }
+.hud .who { display: flex; align-items: center; gap: 7px; min-width: 0; color: var(--ink-2); }
+.hud .who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hud .sw, .pchip .sw { display: inline-block; width: 14px; height: 8px; border-radius: 2px; flex: none; }
+.hud .read { display: flex; align-items: baseline; gap: 3px; white-space: nowrap; }
+.hud .read b { font: 600 21px var(--display); line-height: 1; font-variant-numeric: tabular-nums; }
+.hud .read small { font: 10.5px var(--mono); color: var(--muted); }
+.gauges { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; white-space: nowrap; gap: 8px; align-items: end; }
+.gauge { display: flex; flex-direction: column; gap: 3px; font: 10px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; min-width: 0; }
+.gauge .g { height: 8px; background: var(--hair); border-radius: 3px; overflow: hidden; position: relative; }
+.gauge .g i { position: absolute; top: 0; bottom: 0; left: 0; width: 0; }
+.gauge .g i.thr { background: var(--good-line); } .gauge .g i.brk { background: var(--crit); } .gauge .g i.clu { background: var(--t-clutch); }
+.gauge.steer .g i { background: var(--ink-2); }
+.gauge.steer .g::after { content: ""; position: absolute; left: 50%; top: -1px; bottom: -1px; width: 1px; background: var(--axis); }
+.hbflag { font: 600 9.5px var(--mono); text-transform: uppercase; letter-spacing: .05em; padding: 2px 5px; border-radius: 4px; border: 1px solid var(--hair); color: var(--muted); white-space: nowrap; }
+.hbflag.on { background: var(--t-handbrake); border-color: var(--t-handbrake); color: #fff; }
+.pass-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pchip { font: 11.5px var(--mono); border: 1px solid var(--hair); border-radius: 99px; padding: 3px 10px; background: none; color: var(--ink-2); display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.pchip:hover { border-color: var(--axis); }
+.pchip[aria-pressed="true"] { border-color: var(--pc); box-shadow: inset 0 0 0 1px var(--pc); color: var(--ink); }
+.pchip .sw { background: var(--pc); }
+
 @media (max-width: 980px) {
   .grid-main, .grid-corner, .coach, .two, .throttle, .cd-grid { grid-template-columns: minmax(0, 1fr); }
   .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -185,6 +226,10 @@ footer { font-size: 12px; color: var(--muted); }
   .bandlegend { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .bar { grid-template-columns: 96px minmax(0, 1fr) 56px; }
   h1 { font-size: 28px; }
+  .hud-row { grid-template-columns: repeat(3, auto) minmax(0, 1fr); }
+  .hud .who { grid-column: 1 / -1; }
+  .gauges { grid-column: 1 / -1; }
+  .rp-mini { width: 30% !important; }
 }
 @media (prefers-reduced-motion: no-preference) { .corner { transition: background .12s; } }
 </style>
@@ -226,7 +271,7 @@ footer { font-size: 12px; color: var(--muted); }
       <section class="panel">
         <div class="panel-head">
           <h2 data-i18n="mapTitle"></h2>
-          <div class="seg" role="group"><button id="m-session" data-i18n="thisSession"></button><button id="m-cumul" data-i18n="allSessions"></button></div>
+          <div class="seg" role="group"><button id="m-session" data-i18n="thisSession"></button><button id="m-cumul" data-i18n="allSessions"></button><button id="m-replay" data-i18n="replay"></button></div>
         </div>
         <div class="map-box" id="map"></div>
         <div class="legend" id="map-legend"></div>
@@ -369,6 +414,14 @@ footer { font-size: 12px; color: var(--muted); }
         reflex: (t, p) => `Réflexe dominant : ${t} pour ${p} % de tes lancements.`,
         tre: (list) => `Virages traîtres en ce moment : ${list}.`,
       },
+      replay: "▶ Replay",
+      rp: { play: "Lecture", pause: "Pause", restart: "Revenir au début", time: "Position dans le replay", speed: "Vitesse de lecture", prev: "Glisse précédente", next: "Glisse suivante",
+        camera: "Caméra", road: "Suit la route", north: "Carte fixe", strobe: "Silhouettes", strobeHint: "Dessine la voiture toutes les 0,3 s le long des passages choisis",
+        thr: "gaz", brk: "frein", clu: "embray.", steer: "volant", hb: "frein à main", gearShort: "rapport", angleShort: "angle", between: "entre deux virages",
+        rerun: "Relance l'analyse (update_dashboard.bat) pour activer le replay.", follow: "Replay de la session, caméra qui suit la voiture",
+        title: "Rejouer le virage", hint: "Choisis jusqu'à 3 passages : ils partent ensemble à l'entrée du virage (temps 0).",
+        legendCar: "ta voiture (vitre claire = l'avant, roues avant = ton volant)", legendArrow: "Flèche = où la voiture va vraiment. L'écart entre la flèche et le nez, c'est l'angle de dérive. Contours = la voiture juste avant.",
+        playDrift: "Rejouer cette glisse", stripHint: "Clique sur les courbes pour y placer le replay" },
       up: "montée", down: "descente", nf: "fr-FR",
     },
     en: {
@@ -423,10 +476,18 @@ footer { font-size: 12px; color: var(--muted); }
         reflex: (t, p) => `Dominant reflex: ${t} for ${p}% of your initiations.`,
         tre: (list) => `Treacherous corners right now: ${list}.`,
       },
+      replay: "▶ Replay",
+      rp: { play: "Play", pause: "Pause", restart: "Back to start", time: "Replay position", speed: "Playback speed", prev: "Previous drift", next: "Next drift",
+        camera: "Camera", road: "Follow the road", north: "Fixed map", strobe: "Ghosts", strobeHint: "Draws the car every 0.3 s along the chosen passes",
+        thr: "throttle", brk: "brake", clu: "clutch", steer: "wheel", hb: "handbrake", gearShort: "gear", angleShort: "angle", between: "between corners",
+        rerun: "Run the analysis again (update_dashboard.bat) to enable the replay.", follow: "Session replay, camera following the car",
+        title: "Replay the corner", hint: "Pick up to 3 passes: they start together at the corner entry (time 0).",
+        legendCar: "your car (light window = front, front wheels = your steering)", legendArrow: "Arrow = where the car is actually going. The gap between the arrow and the nose is the slip angle. Outlines = the car a moment earlier.",
+        playDrift: "Replay this drift", stripHint: "Click the traces to move the replay there" },
       up: "uphill", down: "downhill", nf: "en-GB",
     },
   };
-  const state = { track: "all", car: "all", session: null, mode: "session", lang: "fr", tab: "session", corner: null, csort: "trouble" };
+  const state = { track: "all", car: "all", session: null, mode: "session", lang: "fr", tab: "session", corner: null, csort: "trouble", cam: "road", strobe: false };
   try { Object.assign(state, JSON.parse(localStorage.getItem("dl-prefs") || "{}")); } catch (e) {}
   const h = location.hash.replace("#", "");
   if (["session", "corners", "techniques", "progress"].includes(h)) state.tab = h;
@@ -487,7 +548,7 @@ footer { font-size: 12px; color: var(--muted); }
     document.querySelectorAll("[data-i18n]").forEach(n => { n.textContent = L()[n.dataset.i18n]; });
     document.documentElement.lang = state.lang;
     $("l-fr").setAttribute("aria-pressed", state.lang === "fr"); $("l-en").setAttribute("aria-pressed", state.lang === "en");
-    $("m-session").setAttribute("aria-pressed", state.mode === "session"); $("m-cumul").setAttribute("aria-pressed", state.mode === "cumul");
+    $("m-session").setAttribute("aria-pressed", state.mode === "session"); $("m-cumul").setAttribute("aria-pressed", state.mode === "cumul"); $("m-replay").setAttribute("aria-pressed", state.mode === "replay");
     $("cs-trouble").setAttribute("aria-pressed", state.csort === "trouble"); $("cs-order").setAttribute("aria-pressed", state.csort === "order");
     const tr = currentTrack(), tre = tr ? tr.corners.filter(c => c.stats && c.stats.treacherous).length : 0;
     document.querySelectorAll("#tabs button").forEach(b => {
@@ -577,6 +638,11 @@ footer { font-size: 12px; color: var(--muted); }
     const box = $("map"); box.innerHTML = "";
     const tr = currentTrack(), ses = currentSession();
     if (!tr || !ses) { box.innerHTML = `<p class="note">${L().pickSession}</p>`; $("map-legend").innerHTML = ""; return; }
+    if (state.mode === "replay") {
+      renderReplay(box, tr, ses);
+      $("map-legend").innerHTML = carLegend() + `<span class="eyebrow">${L().angle}</span>` + BINS.map((b, i) => `<span class="ramp"><i style="background:var(${b[2]})"></i>${binLabel(i)}</span>`).join("");
+      return;
+    }
     const xs = tr.ref_trace.x.concat(ses.trace.x), zs = tr.ref_trace.z.concat(ses.trace.z);
     const minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs);
     const W = 760, pad = 26, k = (W - 2 * pad) / Math.max(maxx - minx, 1);
@@ -667,7 +733,7 @@ footer { font-size: 12px; color: var(--muted); }
   }
 
   function renderStrip() {
-    const box = $("strip"); box.innerHTML = "";
+    const box = $("strip"); box.innerHTML = ""; stripCursor = null;
     const ses = currentSession(); if (!ses) return;
     const t = ses.trace, T = t.t[t.t.length - 1] || 1;
     const W = 1000, Lm = 52, R = 12, rowH = 92, gap = 34, top = 24, vmax = Math.ceil(Math.max(...t.speed) / 50) * 50;
@@ -706,7 +772,19 @@ footer { font-size: 12px; color: var(--muted); }
       showTip(`<b>${fmt(t.t[i], 1)} s</b><br>${L().rows[0]} ${fmt(t.angle[i])}° · ${fmt(t.speed[i])} km/h<br>${L().thr} ${pct(t.thr[i] * 100)} · ${L().brk} ${pct(t.brk[i] * 100)}<br>${L().gear} ${gear} · ${fmt(t.rpm[i])} rpm · ${L().wheel} ${fmt(t.steer[i])}°`, e);
     });
     hit.addEventListener("mouseleave", () => { ch.setAttribute("visibility", "hidden"); hideTip(); });
+    if (state.mode === "replay") {
+      const cur = el("line", { y1: top - 6, y2: H - 22, stroke: "var(--p1)", "stroke-width": 2, visibility: "hidden", "pointer-events": "none" }, svg);
+      stripCursor = tt => { cur.setAttribute("x1", X(tt)); cur.setAttribute("x2", X(tt)); cur.setAttribute("visibility", "visible"); };
+      hit.style.cursor = "pointer";
+      hit.addEventListener("click", e => {
+        if (!sessionPlayer) return;
+        const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+        sessionPlayer.seek((pt.matrixTransform(svg.getScreenCTM().inverse()).x - Lm) / (W - Lm - R) * T);
+      });
+    }
+    box.parentNode.querySelector(".panel-head .note").textContent = state.mode === "replay" ? L().rp.stripHint : L().hoverHint;
   }
+  function syncStrip() { renderStrip(); if (sessionPlayer) sessionPlayer.redraw(); }
 
   function outcomeCell(o, reasons) {
     const r = reasons && reasons.length ? ` <span class="muted">· ${L().reason[reasons[0]]}</span>` : "";
@@ -716,9 +794,15 @@ footer { font-size: 12px; color: var(--muted); }
     const ses = currentSession(), tb = $("drifts");
     if (!ses) { tb.innerHTML = ""; $("drift-count").textContent = ""; return; }
     $("drift-count").textContent = L().driftsN(ses.drifts.length);
-    tb.innerHTML = `<thead><tr>${L().table.map((h, i) => `<th${i === 2 || i === 10 ? ' class="l"' : ""}>${h}</th>`).join("")}</tr></thead><tbody>` + ses.drifts.map(d =>
-      `<tr><td class="mono">${fmt(d.t0, 1)} s</td><td>${d.corner ? L().C + d.corner : "–"}</td><td class="l"><span class="status"><span class="dot" style="background:${tcol(d.technique)}"></span>${L().tech[d.technique]}</span></td><td>${d.gear}</td><td>${fmt(d.entry)} km/h</td><td>${fmt(d.avg_angle)}°</td><td>${fmt(d.max_angle)}°</td><td>${pct(d.lift_pct)}</td><td>${pct(d.thr_mid)}</td><td><span class="score">${d.score}</span></td><td class="l">${outcomeCell(d.outcome, d.reasons)}</td></tr>`
+    tb.innerHTML = `<thead><tr><th></th>${L().table.map((h, i) => `<th${i === 2 || i === 10 ? ' class="l"' : ""}>${h}</th>`).join("")}</tr></thead><tbody>` + ses.drifts.map(d =>
+      `<tr><td><button class="btn mini" data-play="${d.t0}" title="${L().rp.playDrift}" aria-label="${L().rp.playDrift}">▶</button></td><td class="mono">${fmt(d.t0, 1)} s</td><td>${d.corner ? L().C + d.corner : "–"}</td><td class="l"><span class="status"><span class="dot" style="background:${tcol(d.technique)}"></span>${L().tech[d.technique]}</span></td><td>${d.gear}</td><td>${fmt(d.entry)} km/h</td><td>${fmt(d.avg_angle)}°</td><td>${fmt(d.max_angle)}°</td><td>${pct(d.lift_pct)}</td><td>${pct(d.thr_mid)}</td><td><span class="score">${d.score}</span></td><td class="l">${outcomeCell(d.outcome, d.reasons)}</td></tr>`
     ).join("") + "</tbody>";
+    tb.querySelectorAll("[data-play]").forEach(b => b.addEventListener("click", () => {
+      state.rpTau = Math.max(0, +b.dataset.play - 1.5); state.rpSid = state.session;
+      if (state.mode !== "replay") { state.mode = "replay"; save(); renderChrome(); renderMap(); syncStrip(); }
+      if (sessionPlayer) sessionPlayer.seek(state.rpTau, true);
+      $("map").scrollIntoView({ behavior: "smooth", block: "center" });
+    }));
   }
 
   /* ---------- corners tab ---------- */
@@ -756,50 +840,345 @@ footer { font-size: 12px; color: var(--muted); }
       ${[["entry", " km/h"], ["brake_dist", " m"], ["angle", "°"], ["lift", state.lang === "fr" ? " %" : "%"], ["score", ""]].map(([k, u], i) =>
         `<tr><td>${cd.vsRows[i]}</td><td>${st.ok[k] !== null ? fmt(st.ok[k]) + u : "–"}</td><td>${st.ko[k] !== null ? fmt(st.ko[k]) + u : "–"}</td></tr>`).join("")}
       </tbody></table></div></div>`;
-    html += `<h3>${cd.map}</h3><div class="map-box" id="corner-map"></div><div class="legend"><span class="ramp"><i style="background:var(--good-line)"></i>${cd.mapLegendOk}</span><span class="ramp"><i style="background:var(--crit)"></i>${cd.mapLegendKo}</span><span class="sym">${symSvg("impact")}${L().impact}</span></div>`;
+    html += `<div class="panel-head"><h3>${L().rp.title}</h3><span class="note">${L().rp.hint}</span></div><div class="pass-chips" id="pass-chips"></div><div class="replay" id="corner-map"></div><div class="legend" id="corner-legend"></div>`;
     html += `<h3>${cd.attempts}</h3><div class="table-scroll"><table id="att-table"><thead><tr>${cd.cols.map((h, i) => `<th${i === 0 || i === 1 || i === 7 ? ' class="l"' : ""}>${h}</th>`).join("")}</tr></thead><tbody>` +
       att.map((a, i) => `<tr class="hov" data-i="${i}"><td class="l mono">${shortDate(history.find(x => x.id === a.sid).date)}</td><td class="l"><span class="status"><span class="dot" style="background:${tcol(a.technique)}"></span>${L().tech[a.technique]}</span></td><td>${fmt(a.entry)} km/h</td><td>${a.brake_dist !== null ? fmt(a.brake_dist) + " m" : cd.noBrake}</td><td>${a.kind === "drift" ? fmt(a.avg_angle) + "°" : "–"}</td><td>${a.lift_pct !== null ? pct(a.lift_pct) : "–"}</td><td><span class="score">${a.score}</span></td><td class="l">${outcomeCell(a.outcome, a.reasons)}</td></tr>`).join("") + `</tbody></table></div>`;
     box.innerHTML = html;
-    drawCornerMap($("corner-map"), tr, c, att);
+    renderCornerReplay(tr, c, att);
     box.querySelectorAll("#att-table tr.hov").forEach(r => {
       r.addEventListener("mouseenter", () => highlightPass(+r.dataset.i, true));
       r.addEventListener("mouseleave", () => highlightPass(+r.dataset.i, false));
+      r.addEventListener("click", () => toggleCornerPass(tr, c, att, passKey(att[+r.dataset.i])));
+      r.style.cursor = "pointer";
     });
   }
   function highlightPass(i, on) {
-    document.querySelectorAll("#corner-map [data-pass]").forEach(p => {
+    document.querySelectorAll("#corner-map .bg-pass").forEach(p => {
       const me = +p.dataset.pass === i;
-      p.setAttribute("stroke-opacity", on ? (me ? 1 : .15) : .75);
-      p.setAttribute("stroke-width", on && me ? 4.5 : 2.5);
+      p.setAttribute("stroke-opacity", on ? (me ? 1 : .12) : .45);
+      p.setAttribute("stroke-width", on && me ? 4 : 1.5);
     });
   }
-  function drawCornerMap(box, tr, c, att) {
-    const span = Math.max(c.pos1 - c.pos0, 0.004), lo = c.pos0 - span * 0.8 - 0.004, hi = c.pos1 + span * 0.8 + 0.004;
-    const refPts = tr.ref_trace.pos.map((p, i) => [p, tr.ref_trace.x[i], tr.ref_trace.z[i]]).filter(q => q[0] >= lo && q[0] <= hi);
-    const passes = att.map(a => {
-      const t = D.sessions[a.sid].trace, pts = [];
-      for (let i = 0; i < t.t.length; i++) if (t.pos[i] >= lo && t.pos[i] <= hi && Math.abs(t.t[i] - a.t) < 12) pts.push([t.x[i], t.z[i]]);
-      return pts;
+  /* ---------- replay ----------
+     The car is drawn in world metres (SVG x = world x, SVG y = world z).
+     Heading h: nose direction = (sin h, cos h). In SVG that is rotate(-h) of the local +y axis,
+     so the car is drawn nose-up along local +y and placed with translate(x z) rotate(-h).
+     Front wheels: delta = -steer / STEER_RATIO in heading terms -> rotate(+steer / ratio) locally.
+     Travel direction = h + slip angle -> the velocity arrow is rotate(-slip) locally. */
+  const STEER_RATIO = 15, PASS_COLORS = ["var(--p1)", "var(--p2)", "var(--p3)"];
+  let players = [], stripCursor = null, sessionPlayer = null;
+  const cornerSel = {};
+  function stopAll() { players.forEach(p => p.stop()); players = []; sessionPlayer = null; }
+  const hasReplay = t => !!(t && t.hd && t.sb);
+  const angDiff = (a, b) => ((a - b + 540) % 360) - 180;
+  const rateLabel = r => (r === .25 ? "¼" : r === .5 ? "½" : r) + "×";
+
+  function idxAt(t, tt) {
+    let lo = 0, hi = t.t.length - 1;
+    if (tt <= t.t[0]) return 0;
+    if (tt >= t.t[hi]) return hi;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (t.t[m] <= tt) lo = m; else hi = m; }
+    return lo;
+  }
+  function sampleAt(t, tt) {
+    const i = idxAt(t, tt), j = Math.min(i + 1, t.t.length - 1);
+    const f = j > i && t.seg[i] === t.seg[j] ? Math.min(1, Math.max(0, (tt - t.t[i]) / ((t.t[j] - t.t[i]) || 1))) : 0;
+    const lin = k => t[k][i] + (t[k][j] - t[k][i]) * f;
+    const sb = lin("sb");
+    return { i, x: lin("x"), z: lin("z"), hd: t.hd[i] + angDiff(t.hd[j], t.hd[i]) * f, sb, angle: Math.abs(sb), speed: lin("speed"),
+      thr: lin("thr"), brk: lin("brk"), clu: t.clu ? lin("clu") : 1, steer: lin("steer"), gear: t.gear[i], hb: t.hb ? t.hb[f < .5 ? i : j] : 0, pos: t.pos[i] };
+  }
+
+  function makeCar(parent, color, opt) {
+    opt = opt || {};
+    const g = el("g", { class: "car" }, parent);
+    let arrow = null, line = null, head = null, fl = null, fr = null;
+    if (opt.arrow) {
+      arrow = el("g", {}, g);
+      line = el("line", { x1: 0, y1: 0, x2: 0, y2: 6, stroke: "var(--ink)", "stroke-width": 1.6, "vector-effect": "non-scaling-stroke", "stroke-linecap": "round" }, arrow);
+      head = el("path", { d: "M0 0L-.75 -1.5L.75 -1.5Z", fill: "var(--ink)" }, arrow);
+    }
+    const inner = el("g", { transform: `scale(${opt.scale || 1})` }, g);
+    if (opt.outline) {
+      el("rect", { x: -.9, y: -2.25, width: 1.8, height: 4.5, rx: .45, fill: "none", stroke: color, "stroke-width": 1.2, "vector-effect": "non-scaling-stroke" }, inner);
+      el("line", { x1: -.7, x2: .7, y1: 1.1, y2: 1.1, stroke: color, "stroke-width": 1.2, "vector-effect": "non-scaling-stroke" }, inner);
+    } else {
+      el("rect", { x: -.9, y: -2.25, width: 1.8, height: 4.5, rx: .45, fill: color, stroke: "var(--surface)", "stroke-width": 1, "vector-effect": "non-scaling-stroke" }, inner);
+      el("rect", { x: -.7, y: .55, width: 1.4, height: .65, rx: .15, fill: "var(--surface)", "fill-opacity": .9 }, inner);
+      if (opt.wheels) {
+        [-.88, .88].forEach(x => el("rect", { x: x - .15, y: -1.69, width: .3, height: .68, rx: .08, fill: "var(--ink)" }, inner));
+        fl = el("g", {}, inner); fr = el("g", {}, inner);
+        [fl, fr].forEach(w => el("rect", { x: -.15, y: -.34, width: .3, height: .68, rx: .08, fill: "var(--ink)" }, w));
+      }
+    }
+    return {
+      g,
+      set(sm, op) {
+        g.setAttribute("transform", `translate(${sm.x.toFixed(2)} ${sm.z.toFixed(2)}) rotate(${(-sm.hd).toFixed(1)})`);
+        g.setAttribute("opacity", op === undefined ? 1 : op);
+        g.removeAttribute("visibility");
+        if (fl) {
+          const w = (sm.steer / STEER_RATIO).toFixed(1);
+          fl.setAttribute("transform", `translate(-.88 1.35) rotate(${w})`);
+          fr.setAttribute("transform", `translate(.88 1.35) rotate(${w})`);
+        }
+        if (arrow) {
+          const len = 2.6 + sm.speed / 9;
+          arrow.setAttribute("transform", `rotate(${(-sm.sb).toFixed(1)})`);
+          arrow.setAttribute("visibility", sm.speed > 5 ? "visible" : "hidden");
+          line.setAttribute("y2", len.toFixed(2));
+          head.setAttribute("transform", `translate(0 ${(len + 1.3).toFixed(2)})`);
+        }
+      },
+      hide() { g.setAttribute("visibility", "hidden"); },
+    };
+  }
+
+  function makePlayer(bar, opt) {
+    const R = L().rp, p = { tau: opt.start ?? opt.t0, rate: opt.rate, playing: false, raf: 0, last: 0 };
+    bar.innerHTML = `<button class="btn rp-play"></button><button class="btn" data-a="restart" title="${R.restart}" aria-label="${R.restart}">↺</button>${opt.extraLeft || ""}
+      <input type="range" min="${opt.t0}" max="${opt.t1}" step="0.05" aria-label="${R.time}"><span class="rp-time mono"></span>
+      <div class="seg" role="group" aria-label="${R.speed}">${opt.rates.map(r => `<button data-r="${r}">${rateLabel(r)}</button>`).join("")}</div>${opt.extraRight || ""}`;
+    const btn = bar.querySelector(".rp-play"), rng = bar.querySelector("input"), time = bar.querySelector(".rp-time");
+    const sync = () => {
+      btn.textContent = p.playing ? "❚❚" : "▶"; btn.setAttribute("aria-label", p.playing ? R.pause : R.play); btn.title = p.playing ? R.pause : R.play;
+      bar.querySelectorAll("[data-r]").forEach(b => b.setAttribute("aria-pressed", +b.dataset.r === p.rate));
+    };
+    const draw = snap => { rng.value = p.tau; time.textContent = opt.timeLabel(p.tau); opt.draw(p.tau, snap); if (opt.after) opt.after(p.tau); };
+    const frame = now => {
+      if (!p.playing) return;
+      const dt = Math.min(.1, (now - p.last) / 1000); p.last = now;
+      p.tau = Math.min(opt.t1, p.tau + dt * p.rate);
+      if (p.tau >= opt.t1) p.playing = false;
+      draw(false);
+      if (p.playing) p.raf = requestAnimationFrame(frame); else sync();
+    };
+    p.play = () => { if (p.tau >= opt.t1 - .05) p.tau = opt.t0; p.playing = true; p.last = performance.now(); sync(); cancelAnimationFrame(p.raf); p.raf = requestAnimationFrame(frame); };
+    p.pause = () => { p.playing = false; cancelAnimationFrame(p.raf); sync(); };
+    p.stop = p.pause;
+    p.seek = (tt, play) => { p.tau = Math.max(opt.t0, Math.min(opt.t1, tt)); draw(true); if (play) p.play(); };
+    p.redraw = () => draw(true);
+    btn.addEventListener("click", () => p.playing ? p.pause() : p.play());
+    bar.querySelector('[data-a="restart"]').addEventListener("click", () => p.seek(opt.t0));
+    rng.addEventListener("input", () => { p.pause(); p.seek(+rng.value); });
+    bar.querySelectorAll("[data-r]").forEach(b => b.addEventListener("click", () => { p.rate = +b.dataset.r; if (opt.onRate) opt.onRate(p.rate); sync(); }));
+    sync(); draw(true);
+    players.push(p);
+    return p;
+  }
+
+  function makeHud(box, rows) {
+    const R = L().rp;
+    box.innerHTML = rows.map((r, i) => `<div class="hud-row" data-i="${i}">
+      <span class="who">${r.color ? `<i class="sw" style="background:${r.color}"></i>` : ""}<span data-k="label">${r.label || ""}</span></span>
+      <span class="read"><b data-k="speed">–</b><small>km/h</small></span>
+      <span class="read"><b data-k="angle">–</b><small>° ${R.angleShort}</small></span>
+      <span class="read"><b data-k="gear">–</b><small>${R.gearShort}</small></span>
+      <span class="gauges">${["thr", "brk", "clu"].map(k => `<span class="gauge"><span>${R[k]}</span><span class="g"><i data-k="${k}" class="${k}"></i></span></span>`).join("")}
+        <span class="gauge steer"><span>${R.steer}</span><span class="g"><i data-k="steer"></i></span></span>
+        <span class="hbflag" data-k="hb">${R.hb}</span></span></div>`).join("");
+    const q = [...box.querySelectorAll(".hud-row")].map(r => { const o = {}; r.querySelectorAll("[data-k]").forEach(n => { o[n.dataset.k] = n; }); return o; });
+    return (i, sm, label) => {
+      const o = q[i]; if (!o) return;
+      if (label !== undefined) o.label.textContent = label;
+      o.speed.textContent = fmt(sm.speed); o.angle.textContent = fmt(sm.angle);
+      o.gear.textContent = sm.gear <= 0 ? (sm.gear === 0 ? "N" : "R") : sm.gear;
+      o.thr.style.width = (sm.thr * 100).toFixed(0) + "%";
+      o.brk.style.width = (sm.brk * 100).toFixed(0) + "%";
+      o.clu.style.width = ((1 - sm.clu) * 100).toFixed(0) + "%";
+      const st = Math.max(-1, Math.min(1, sm.steer / 450));
+      o.steer.style.left = (50 + Math.min(0, st) * 50).toFixed(1) + "%"; o.steer.style.width = (Math.abs(st) * 50).toFixed(1) + "%";
+      o.hb.classList.toggle("on", !!sm.hb);
+    };
+  }
+
+  function carLegend() {
+    const R = L().rp;
+    return `<span class="sym"><svg width="30" height="16" viewBox="0 0 30 16"><rect x="2" y="4" width="18" height="8" rx="2" fill="var(--p1)"/><rect x="13" y="5" width="3" height="6" rx="1" fill="var(--surface)"/><line x1="11" y1="8" x2="26" y2="3" stroke="var(--ink)" stroke-width="1.5"/><path d="M28 2.4L24.6 2.2L25.8 5.2Z" fill="var(--ink)"/></svg>${R.legendCar}</span><span>${R.legendArrow}</span>`;
+  }
+
+  /* trail coloured by slip angle, in world metres */
+  function angleTrail(g, t, width, i0, i1) {
+    let run = [], bin = -1, seg = -1;
+    const flush = () => { if (run.length > 1) el("polyline", { points: run.join(" "), fill: "none", stroke: `var(${BINS[bin][2]})`, "stroke-width": width, "vector-effect": "non-scaling-stroke", "stroke-linecap": "round", "stroke-linejoin": "round" }, g); };
+    for (let i = i0 ?? 0; i <= (i1 ?? t.x.length - 1); i++) {
+      const b = binOf(t.angle[i]), p = t.x[i].toFixed(1) + "," + t.z[i].toFixed(1);
+      if (b !== bin || t.seg[i] !== seg) { if (t.seg[i] === seg) run.push(p); flush(); run = [p]; bin = b; seg = t.seg[i]; } else run.push(p);
+    }
+    flush();
+  }
+
+  /* ---- whole-session replay: chase camera + mini-map ---- */
+  function renderReplay(box, tr, ses) {
+    const t = ses.trace, R = L().rp;
+    if (!hasReplay(t)) { box.innerHTML = `<p class="note">${R.rerun}</p>`; return; }
+    box.innerHTML = `<div class="replay"><div class="rp-stage"><div class="rp-mini"></div></div><div class="rp-bar"></div><div class="hud"></div></div>`;
+    const stage = box.querySelector(".rp-stage"), W = 760, H = 420, K = 6;
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": R.follow }, null);
+    stage.insertBefore(svg, stage.firstChild);
+    const world = el("g", {}, svg);
+    const refPts = tr.ref_trace.x.map((x, i) => x.toFixed(1) + "," + tr.ref_trace.z[i].toFixed(1)).join(" ");
+    el("polyline", { points: refPts, fill: "none", stroke: "var(--axis)", "stroke-opacity": .45, "stroke-width": 9, "stroke-linecap": "round", "stroke-linejoin": "round" }, world);
+    angleTrail(world, t, 3);
+    const badges = tr.corners.map(c => {
+      const g = el("g", {}, world);
+      el("circle", { cx: 0, cy: 0, r: 11, fill: "var(--surface)", stroke: c.stats && c.stats.treacherous ? "var(--crit)" : "var(--ink)", "stroke-width": 1.2 }, g);
+      txt(g, 0, 4.5, L().C + c.id, { "text-anchor": "middle", "font-family": "Saira Condensed, Arial Narrow, sans-serif", "font-size": 11.5, "font-weight": 600, fill: "var(--ink)" });
+      return { g, c };
     });
-    const all = refPts.map(q => [q[1], q[2]]).concat(...passes);
-    if (all.length < 2) { box.innerHTML = ""; return; }
-    const xs = all.map(p => p[0]), zs = all.map(p => p[1]);
+    const evs = ses.events.filter(e => e.type !== "lift").map(e => { const g = el("g", {}, world); drawSymbol(g, e.type, 0, 0); return { g, e }; });
+    const ghosts = [1, 2, 3, 4, 5].map(() => makeCar(world, "var(--p1)", { outline: true }));
+    const car = makeCar(world, "var(--p1)", { wheels: true, arrow: true });
+
+    // mini-map
+    const mini = stage.querySelector(".rp-mini");
+    const xs = tr.ref_trace.x.concat(t.x), zs = tr.ref_trace.z.concat(t.z);
     const minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs);
-    const W = 640, H = 300, pad = 22, k = Math.min((W - 2 * pad) / Math.max(maxx - minx, 1), (H - 2 * pad) / Math.max(maxz - minz, 1));
+    const km = Math.min(190 / Math.max(maxx - minx, 1), 190 / Math.max(maxz - minz, 1)), MW = (maxx - minx) * km + 16, MH = (maxz - minz) * km + 16;
+    const msvg = el("svg", { viewBox: `0 0 ${MW.toFixed(0)} ${MH.toFixed(0)}`, role: "img", "aria-label": L().mapTitle }, mini);
+    mini.style.width = `min(${MW.toFixed(0)}px, 34%)`;
+    const mg = el("g", { transform: `translate(8 8) scale(${km}) translate(${-minx} ${-minz})` }, msvg);
+    el("polyline", { points: refPts, fill: "none", stroke: "var(--axis)", "stroke-width": 3, "vector-effect": "non-scaling-stroke", "stroke-linecap": "round", "stroke-linejoin": "round" }, mg);
+    angleTrail(mg, t, 1.4);
+    const mcar = makeCar(mg, "var(--p1)", { scale: 15 / (4.5 * km) });
+    const mhalo = el("circle", { r: 9 / km, fill: "var(--p1)", "fill-opacity": .2 }, mg);
+    mg.insertBefore(mhalo, mcar.g);
+
+    const hud = makeHud(box.querySelector(".hud"), [{ label: "" }]);
+    const drifts = ses.drifts.slice().sort((a, b) => a.t0 - b.t0), T = t.t[t.t.length - 1];
+    let camH = null;
+    const draw = (tau, snap) => {
+      const sm = sampleAt(t, tau);
+      let target = sm.hd + sm.sb;
+      const j0 = idxAt(t, tau - .7), j1 = idxAt(t, tau + .7);
+      if (t.seg[j0] === t.seg[j1] && Math.hypot(t.x[j1] - t.x[j0], t.z[j1] - t.z[j0]) > 3) target = Math.atan2(t.x[j1] - t.x[j0], t.z[j1] - t.z[j0]) * 180 / Math.PI;
+      let rot = 0, cy = H / 2;
+      if (state.cam !== "north") {
+        camH = camH === null || snap ? target : camH + angDiff(target, camH) * .1;
+        rot = camH - 180; cy = H * .6;
+      }
+      world.setAttribute("transform", `translate(${W / 2} ${cy}) rotate(${rot.toFixed(2)}) scale(${K}) translate(${(-sm.x).toFixed(2)} ${(-sm.z).toFixed(2)})`);
+      badges.forEach(b => b.g.setAttribute("transform", `translate(${b.c.x} ${b.c.z}) rotate(${(-rot).toFixed(2)}) scale(${1 / K})`));
+      evs.forEach(o => o.g.setAttribute("transform", `translate(${o.e.x} ${o.e.z}) rotate(${(-rot).toFixed(2)}) scale(${1 / K})`));
+      ghosts.forEach((g, k) => {
+        const tt = tau - .22 * (k + 1), s2 = sampleAt(t, tt);
+        if (tt < 0 || t.seg[s2.i] !== t.seg[sm.i] || sm.speed < 8) g.hide(); else g.set(s2, .55 - k * .09);
+      });
+      car.set(sm);
+      mcar.set(sm);
+      mhalo.setAttribute("cx", sm.x.toFixed(1)); mhalo.setAttribute("cy", sm.z.toFixed(1));
+      const c = tr.corners.find(c => sm.pos >= c.pos0 && sm.pos <= c.pos1);
+      hud(0, sm, c ? `${L().C}${c.id} · ${cornerName(c)}` : R.between);
+    };
+    sessionPlayer = makePlayer(box.querySelector(".rp-bar"), {
+      t0: 0, t1: T, start: state.rpTau && state.rpSid === ses.summary.id ? Math.min(state.rpTau, T) : 0, rate: state.srate || 1, rates: [.5, 1, 2, 4], draw,
+      onRate: r => { state.srate = r; },
+      after: tau => { state.rpTau = tau; state.rpSid = ses.summary.id; if (stripCursor) stripCursor(tau); },
+      timeLabel: tau => `${fmt(tau, 1)} / ${fmt(T)} s`,
+      extraLeft: `<button class="btn" data-a="prev" title="${R.prev}" aria-label="${R.prev}">⏮</button><button class="btn" data-a="next" title="${R.next}" aria-label="${R.next}">⏭</button>`,
+      extraRight: `<div class="seg" role="group" aria-label="${R.camera}"><button data-cam="road">${R.road}</button><button data-cam="north">${R.north}</button></div>`,
+    });
+    const bar = box.querySelector(".rp-bar"), sp = sessionPlayer;
+    bar.querySelector('[data-a="prev"]').addEventListener("click", () => { const d = drifts.filter(d => d.t0 - 1.5 < sp.tau - .5).pop(); sp.seek(d ? d.t0 - 1.5 : 0); });
+    bar.querySelector('[data-a="next"]').addEventListener("click", () => { const d = drifts.find(d => d.t0 - 1.5 > sp.tau + .3); if (d) sp.seek(d.t0 - 1.5); });
+    const camBtns = bar.querySelectorAll("[data-cam]");
+    const syncCam = () => camBtns.forEach(b => b.setAttribute("aria-pressed", (state.cam || "road") === b.dataset.cam));
+    camBtns.forEach(b => b.addEventListener("click", () => { state.cam = b.dataset.cam; save(); syncCam(); sp.redraw(); }));
+    syncCam();
+  }
+
+  /* ---- corner replay: up to 3 passes, started together at the corner entry ---- */
+  const passKey = a => a.sid + "@" + a.t;
+  function cornerPasses(tr, c, att) {
+    const span = Math.max(c.pos1 - c.pos0, 0.004), lo = c.pos0 - span * 0.45 - 0.003, hi = c.pos1 + span * 0.35 + 0.002;
+    const passes = att.map((a, ai) => {
+      const t = D.sessions[a.sid].trace, idx = [];
+      for (let i = 0; i < t.t.length; i++) if (t.pos[i] >= lo && t.pos[i] <= hi && Math.abs(t.t[i] - a.t) < 12) idx.push(i);
+      if (idx.length < 2) return null;
+      const runs = [];
+      idx.forEach(i => { const r = runs[runs.length - 1]; if (r && i - r[r.length - 1] <= 2 && t.seg[i] === t.seg[r[r.length - 1]]) r.push(i); else runs.push([i]); });
+      let run = runs[0], best = 1e9;
+      runs.forEach(r => r.forEach(i => { const d = Math.abs(t.t[i] - a.t); if (d < best) { best = d; run = r; } }));
+      if (run.length < 2) return null;
+      const i0 = run[0], i1 = run[run.length - 1], ic = run.find(i => t.pos[i] >= c.pos0) ?? i0;
+      return { a, ai, t, i0, i1, tc: t.t[ic], ta: t.t[i0] - t.t[ic], tb: t.t[i1] - t.t[ic] };
+    });
+    return { passes, lo, hi };
+  }
+  function renderCornerReplay(tr, c, att) {
+    const box = $("corner-map"), chips = $("pass-chips"), R = L().rp;
+    if (!box) return;
+    stopAll();
+    box.innerHTML = ""; chips.innerHTML = "";
+    const { passes, lo, hi } = cornerPasses(tr, c, att), valid = passes.filter(Boolean);
+    $("corner-legend").innerHTML = carLegend() + `<span class="ramp"><i style="background:var(--good-line)"></i>${L().cd.mapLegendOk}</span><span class="ramp"><i style="background:var(--crit)"></i>${L().cd.mapLegendKo}</span><span class="sym">${symSvg("impact")}${L().impact}</span>`;
+    if (!valid.length) return;
+    if (!valid.every(p => hasReplay(p.t))) { box.innerHTML = `<p class="note">${R.rerun}</p>`; return; }
+    let sel = (cornerSel[c.id] || []).filter(k => valid.some(p => passKey(p.a) === k));
+    if (!sel.length) {
+      const ok = valid.filter(p => p.a.success).sort((x, y) => y.a.score - x.a.score)[0];
+      const ko = valid.filter(p => !p.a.success).sort((x, y) => y.a.sid.localeCompare(x.a.sid) || y.a.t - x.a.t)[0];
+      sel = [ok, ko].filter(Boolean).map(p => passKey(p.a));
+      valid.slice().sort((x, y) => y.a.score - x.a.score).forEach(p => { if (sel.length < 2 && !sel.includes(passKey(p.a))) sel.push(passKey(p.a)); });
+    }
+    cornerSel[c.id] = sel;
+    const chosen = sel.map(k => valid.find(p => passKey(p.a) === k));
+    const colorOf = p => { const i = sel.indexOf(passKey(p.a)); return i < 0 ? null : PASS_COLORS[i]; };
+    const labelOf = p => `${shortDate(history.find(x => x.id === p.a.sid).date)} · ${L().tech[p.a.technique]}`;
+
+    chips.innerHTML = valid.map(p => {
+      const col = colorOf(p);
+      return `<button class="pchip" data-k="${passKey(p.a)}" aria-pressed="${!!col}" style="--pc:${col || "var(--axis)"}">${col ? '<i class="sw"></i>' : ""}<span class="dot" style="background:${outColor(p.a.outcome)}"></span>${labelOf(p)} · ${fmt(p.a.entry)} km/h</button>`;
+    }).join("");
+    chips.querySelectorAll(".pchip").forEach(b => b.addEventListener("click", () => toggleCornerPass(tr, c, att, b.dataset.k)));
+
+    const pts = [];
+    valid.forEach(p => { for (let i = p.i0; i <= p.i1; i++) pts.push([p.t.x[i], p.t.z[i]]); });
+    const refI = tr.ref_trace.pos.map((q, i) => i).filter(i => tr.ref_trace.pos[i] >= lo && tr.ref_trace.pos[i] <= hi);
+    refI.forEach(i => pts.push([tr.ref_trace.x[i], tr.ref_trace.z[i]]));
+    const xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
+    const minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs);
+    const W = 640, H = 380, k = Math.min(W / (maxx - minx + 14), H / (maxz - minz + 14));
     const ox = (W - (maxx - minx) * k) / 2, oz = (H - (maxz - minz) * k) / 2;
-    const P = (x, z) => [((x - minx) * k + ox).toFixed(1), ((z - minz) * k + oz).toFixed(1)];
-    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": L().cd.map }, box);
-    el("polyline", { points: refPts.map(q => P(q[1], q[2]).join(",")).join(" "), fill: "none", stroke: "var(--hair)", "stroke-width": Math.max(14, 9 * k), "stroke-linecap": "round", "stroke-linejoin": "round" }, svg);
-    passes.forEach((pts, i) => {
-      if (pts.length < 2) return;
-      const a = att[i];
-      const pl = el("polyline", { points: pts.map(p => P(p[0], p[1]).join(",")).join(" "), fill: "none", stroke: a.success ? "var(--good-line)" : "var(--crit)", "stroke-width": 2.5, "stroke-opacity": .75, "stroke-linecap": "round", "stroke-linejoin": "round", "data-pass": i }, svg);
-      pl.addEventListener("mousemove", e => showTip(`<b>${shortDate(history.find(x => x.id === a.sid).date)}</b><br>${L().tech[a.technique]} · ${fmt(a.entry)} km/h<br>${L().outcome[a.outcome]}${a.reasons.length ? " · " + L().reason[a.reasons[0]] : ""}`, e));
+    box.innerHTML = `<div class="rp-stage"></div><div class="rp-bar"></div><div class="hud"></div>`;
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": R.title }, box.querySelector(".rp-stage"));
+    const world = el("g", { transform: `translate(${ox.toFixed(1)} ${oz.toFixed(1)}) scale(${k.toFixed(4)}) translate(${(-minx).toFixed(1)} ${(-minz).toFixed(1)})` }, svg);
+    el("polyline", { points: refI.map(i => tr.ref_trace.x[i] + "," + tr.ref_trace.z[i]).join(" "), fill: "none", stroke: "var(--axis)", "stroke-opacity": .45, "stroke-width": 9, "stroke-linecap": "round", "stroke-linejoin": "round" }, world);
+    const line = (p, attrs) => {
+      const pp = []; for (let i = p.i0; i <= p.i1; i++) pp.push(p.t.x[i].toFixed(1) + "," + p.t.z[i].toFixed(1));
+      return el("polyline", Object.assign({ points: pp.join(" "), fill: "none", "vector-effect": "non-scaling-stroke", "stroke-linecap": "round", "stroke-linejoin": "round" }, attrs), world);
+    };
+    valid.forEach(p => {
+      const pl = line(p, { class: "bg-pass", "data-pass": p.ai, stroke: p.a.success ? "var(--good-line)" : "var(--crit)", "stroke-width": 1.5, "stroke-opacity": .45 });
+      pl.addEventListener("mousemove", e => showTip(`<b>${labelOf(p)}</b><br>${fmt(p.a.entry)} km/h · ${L().outcome[p.a.outcome]}${p.a.reasons.length ? " · " + L().reason[p.a.reasons[0]] : ""}`, e));
       pl.addEventListener("mouseleave", hideTip);
     });
-    att.forEach(a => {
-      D.sessions[a.sid].events.filter(e => e.type === "impact" && e.pos >= lo && e.pos <= hi && Math.abs(e.t - a.t) < 12).forEach(e => { const [x, y] = P(e.x, e.z); drawSymbol(svg, "impact", +x, +y); });
+    chosen.forEach(p => line(p, { stroke: colorOf(p), "stroke-width": 2.5, "stroke-opacity": .9 }));
+    const cs = Math.min(1.5, Math.max(1, 20 / (4.5 * k)));
+    if (state.strobe) chosen.forEach(p => { for (let tt = p.t.t[p.i0]; tt <= p.t.t[p.i1]; tt += .3) makeCar(world, colorOf(p), { outline: true, scale: cs }).set(sampleAt(p.t, tt), .75); });
+    valid.forEach(p => D.sessions[p.a.sid].events.filter(e => e.type === "impact" && e.t >= p.t.t[p.i0] - .3 && e.t <= p.t.t[p.i1] + .8).forEach(e => {
+      drawSymbol(el("g", { transform: `translate(${e.x} ${e.z}) scale(${(1 / k).toFixed(4)})` }, world), "impact", 0, 0);
+    }));
+    const cars = chosen.map(p => makeCar(world, colorOf(p), { wheels: true, arrow: true, scale: cs }));
+    const hud = makeHud(box.querySelector(".hud"), chosen.map(p => ({ color: colorOf(p), label: `${labelOf(p)} → ${L().outcome[p.a.outcome]}` })));
+    const draw = tau => chosen.forEach((p, i) => {
+      const a = p.t.t[p.i0], b = p.t.t[p.i1], tt = p.tc + tau, sm = sampleAt(p.t, Math.max(a, Math.min(b, tt)));
+      cars[i].set(sm, tt < a || tt > b ? .3 : 1); hud(i, sm);
     });
+    const t0 = Math.min(...chosen.map(p => p.ta)), t1 = Math.max(...chosen.map(p => p.tb));
+    makePlayer(box.querySelector(".rp-bar"), {
+      t0, t1, start: t0, rate: state.crate || .5, rates: [.25, .5, 1], draw, onRate: r => { state.crate = r; },
+      timeLabel: tau => `${tau < 0 ? "−" : "+"}${fmt(Math.abs(tau), 1)} s`,
+      extraRight: `<button class="btn" data-a="strobe" aria-pressed="${!!state.strobe}" title="${R.strobeHint}">${R.strobe}</button>`,
+    });
+    box.querySelector('[data-a="strobe"]').addEventListener("click", () => { state.strobe = !state.strobe; renderCornerReplay(tr, c, att); });
+  }
+  function toggleCornerPass(tr, c, att, key) {
+    let sel = (cornerSel[c.id] || []).slice();
+    if (sel.includes(key)) { if (sel.length > 1) sel = sel.filter(k => k !== key); }
+    else { sel.push(key); if (sel.length > 3) sel.shift(); }
+    cornerSel[c.id] = sel;
+    renderCornerReplay(tr, c, att);
   }
 
   /* ---------- techniques tab ---------- */
@@ -899,10 +1278,11 @@ footer { font-size: 12px; color: var(--muted); }
     $(id).innerHTML = `<thead><tr><th>${key === "car" ? L().car : L().road}</th>${L().agg.map(x => `<th>${x}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody>`;
   }
 
-  function save() { try { localStorage.setItem("dl-prefs", JSON.stringify({ track: state.track, car: state.car, mode: state.mode, lang: state.lang, tab: state.tab, corner: state.corner, csort: state.csort })); } catch (e) {} }
+  function save() { try { localStorage.setItem("dl-prefs", JSON.stringify({ track: state.track, car: state.car, mode: state.mode, lang: state.lang, tab: state.tab, corner: state.corner, csort: state.csort, cam: state.cam })); } catch (e) {} }
   function renderAll() {
+    stopAll();
     renderChrome();
-    if (state.tab === "session") { renderBand(); renderCoach(); renderMap(); renderSessionCorners(); renderThrottle(); renderStrip(); renderDrifts(); }
+    if (state.tab === "session") { renderBand(); renderCoach(); renderMap(); renderSessionCorners(); renderThrottle(); renderStrip(); renderDrifts(); if (sessionPlayer) sessionPlayer.redraw(); }
     if (state.tab === "corners") { renderCornerList(); renderCornerDetail(); }
     if (state.tab === "techniques") renderTechniques();
     if (state.tab === "progress") { renderEvo(); aggTable("by-car", "car", prettyCar); aggTable("by-track", "track", prettyTrack); }
@@ -913,6 +1293,7 @@ footer { font-size: 12px; color: var(--muted); }
   $("f-session").addEventListener("change", e => { state.session = e.target.value; renderAll(); });
   $("m-session").addEventListener("click", () => { state.mode = "session"; save(); renderAll(); });
   $("m-cumul").addEventListener("click", () => { state.mode = "cumul"; save(); renderAll(); });
+  $("m-replay").addEventListener("click", () => { state.mode = "replay"; save(); renderAll(); });
   $("cs-trouble").addEventListener("click", () => { state.csort = "trouble"; save(); renderAll(); });
   $("cs-order").addEventListener("click", () => { state.csort = "order"; save(); renderAll(); });
   $("l-fr").addEventListener("click", () => { state.lang = "fr"; save(); renderAll(); });

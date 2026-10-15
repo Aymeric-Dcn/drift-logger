@@ -23,6 +23,15 @@ An in-game app records the car's state about 90 times per second. A Python scrip
 
 Each drift is also broken down by how it was started (transition, feint, clutch kick, braking, lift-off, power over), how it was held and how it ended. A light touch on exit (under 10 km/h lost) still counts as a success. Every pass through every corner is compared: success rate per corner and per technique, entry speed and braking point of successful vs failed passes, dominant reflex, and the most likely cause of each failure (too fast on entry, foot off, rear lock, late counter-steer, too much angle, line).
 
+## Replay
+
+The car is redrawn as a top-down rectangle: body, light window at the front, front wheels turned by the steering input, and an arrow for the real direction of travel. The gap between the arrow and the nose is the slip angle.
+
+- **Session tab → Replay**: the whole run with a chase camera (following the road or fixed map), a mini-map, outlines of the car a moment earlier, and live speed, angle, gear, pedals and steering. Each drift in the table has a ▶ button, and clicking the telemetry traces moves the replay there.
+- **Corners tab → Replay the corner**: up to three passes of the same corner start together at the corner entry, so you can see who brakes earlier, who carries more angle and who hits the wall. *Ghosts* draws the car every 0.3 s along each pass.
+
+AC's Python API has no world heading, so it is rebuilt: the yaw rate is integrated and its slow drift is corrected with the direction of travel minus the slip angle (about 0.4° median error).
+
 Corners are detected from the path's curvature (radius under 90 m) and numbered by their position along the track spline, so a corner keeps its number from one session to the next. Each corner gets cumulative stats (passes, drifts, average angle, impacts, spins) and a trouble score.
 
 ## Layout
