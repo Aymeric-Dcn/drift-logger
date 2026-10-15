@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+# recorded data stays local
+drift_logger/logs/
+drift_logger/analysis/sessions/
+drift_logger/analysis/tracks/
+drift_logger/analysis/history.json
+drift_logger/analysis/coaching.json
+drift_logger/analysis/dashboard.html
