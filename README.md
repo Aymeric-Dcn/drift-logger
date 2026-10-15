@@ -36,6 +36,7 @@ drift_logger/                  copy this folder to assettocorsa/apps/python/
     ├── technique.py           initiation, ending, score and causes of each drift
     ├── corner_report.py       corner-by-corner and per-technique comparisons
     ├── build_dashboard.py     -> dashboard.html
+    ├── update_dashboard.bat   one-click update (Windows)
     ├── dashboard_template.html
     └── requirements.txt
 ```
@@ -45,7 +46,7 @@ drift_logger/                  copy this folder to assettocorsa/apps/python/
 1. Copy `drift_logger/` into `steamapps/common/assettocorsa/apps/python/`.
 2. In Content Manager: *Settings → Assetto Corsa → Apps*, tick **drift_logger**.
 3. On track, open **Drift Logger** from the right-hand app bar, press **REC**, drive, press **STOP**.
-4. Run the analysis and build the dashboard:
+4. On Windows, double-click `analysis/update_dashboard.bat` (installs numpy/pandas if needed, runs the analysis and opens the dashboard), or run it by hand:
 
 ```bash
 cd drift_logger/analysis
