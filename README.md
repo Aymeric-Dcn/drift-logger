@@ -21,6 +21,8 @@ An in-game app records the car's state about 90 times per second. A Python scrip
 | Throttle stabs | full throttle to foot off, or back, in under 0.35 s |
 | Throttle use | share of drift time spent off / low / modulated (40–90%) / flat out |
 
+Each drift is also broken down by how it was started (transition, feint, clutch kick, braking, lift-off, power over), how it was held and how it ended. A light touch on exit (under 10 km/h lost) still counts as a success. Every pass through every corner is compared: success rate per corner and per technique, entry speed and braking point of successful vs failed passes, dominant reflex, and the most likely cause of each failure (too fast on entry, foot off, rear lock, late counter-steer, too much angle, line).
+
 Corners are detected from the path's curvature (radius under 90 m) and numbered by their position along the track spline, so a corner keeps its number from one session to the next. Each corner gets cumulative stats (passes, drifts, average angle, impacts, spins) and a trouble score.
 
 ## Layout
@@ -30,7 +32,9 @@ drift_logger/                  copy this folder to assettocorsa/apps/python/
 ├── drift_logger.py            in-game app (Python 3.3, Assetto Corsa's interpreter)
 ├── logs/                      CSV files written by the app (created on first REC)
 └── analysis/
-    ├── analyse.py             logs -> sessions/, tracks/, history.json
+    ├── analyse.py             logs -> sessions/, tracks/, history.json, report.json
+    ├── technique.py           initiation, ending, score and causes of each drift
+    ├── corner_report.py       corner-by-corner and per-technique comparisons
     ├── build_dashboard.py     -> dashboard.html
     ├── dashboard_template.html
     └── requirements.txt
