@@ -8,9 +8,9 @@ from collections import Counter
 
 import numpy as np
 
-T_FR = {"transition": "enchaînement", "feint": "appel-contre-appel", "clutch": "clutch kick", "brake": "freinage",
+T_FR = {"transition": "enchaînement", "handbrake": "frein à main", "feint": "appel-contre-appel", "clutch": "clutch kick", "brake": "freinage",
         "lift": "lever de pied", "power": "gaz", "other": "autre", "grip": "en grip"}
-T_EN = {"transition": "transition", "feint": "feint", "clutch": "clutch kick", "brake": "braking",
+T_EN = {"transition": "transition", "handbrake": "handbrake", "feint": "feint", "clutch": "clutch kick", "brake": "braking",
         "lift": "lift-off", "power": "power over", "other": "other", "grip": "in grip"}
 R_FR = {"too_fast": "entrée trop rapide", "rear_lock": "arrière bloqué", "lift": "pied levé", "late_cs": "contre-braquage tardif",
         "over_angle": "trop d'angle", "line": "placement", "exit_wide": "sortie trop large", "understeer": "sous-virage"}

@@ -35,6 +35,12 @@ def cs(key, idx=None):
     return lambda: ac.getCarState(0, key)[idx]
 
 
+def opt(name, idx=None):
+    """Channel that may not exist in every game / CSP version."""
+    key = getattr(acsys.CS, name, None)
+    return None if key is None else cs(key, idx)
+
+
 def build_channels():
     """Probe each channel once and keep only the ones that work."""
     candidates = [
@@ -70,9 +76,17 @@ def build_channels():
         ("world_x", cs(acsys.CS.WorldPosition, 0)),
         ("world_y", cs(acsys.CS.WorldPosition, 1)),
         ("world_z", cs(acsys.CS.WorldPosition, 2)),
+        ("wheel_speed_fl", opt("WheelAngularSpeed", 0)),
+        ("wheel_speed_fr", opt("WheelAngularSpeed", 1)),
+        ("wheel_speed_rl", opt("WheelAngularSpeed", 2)),
+        ("wheel_speed_rr", opt("WheelAngularSpeed", 3)),
+        ("handbrake", opt("Handbrake")),
     ]
     ok = []
     for name, fn in candidates:
+        if fn is None:
+            ac.console("Drift Logger: channel unavailable %s" % name)
+            continue
         try:
             float(fn())
             ok.append((name, fn))

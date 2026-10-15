@@ -7,7 +7,7 @@ Everything works on the full-rate session dataframe prepared by analyse.py.
 import numpy as np
 
 # initiation techniques, in priority order when several are detected
-TECHNIQUES = ["transition", "feint", "clutch", "brake", "lift", "power", "other"]
+TECHNIQUES = ["transition", "handbrake", "feint", "clutch", "brake", "lift", "power", "other"]
 
 LIGHT_TOUCH_LOSS = 10.0   # km/h lost at the contact: below this, a touch on exit is fine
 OVER_ANGLE = 65.0         # deg: too much angle, the drift bogs down
@@ -16,6 +16,22 @@ LATE_CS = 0.5             # s
 
 def window(df, t0, t1):
     return df[(df.time_s >= t0) & (df.time_s <= t1)]
+
+
+def handbrake(df, t0):
+    """Handbrake channel when the game exposes it, otherwise inferred: rear wheels
+    locking with the brake pedal released and the front wheels rolling, while the
+    clutch is in or the throttle is open. With the foot off and the clutch out,
+    the same lock comes from engine braking instead."""
+    w = window(df, t0 - 1.0, t0 + 0.2)
+    if not len(w):
+        return False
+    if "handbrake" in w and w.handbrake.notna().any():
+        return bool(w.handbrake.max() > 0.3)
+    rear = w[["slip_ratio_rl", "slip_ratio_rr"]].mean(axis=1)
+    front = w[["slip_ratio_fl", "slip_ratio_fr"]].mean(axis=1)
+    hit = (rear < -0.4) & (front > -0.15) & (w.brake < 0.15) & (w.rpm > 1500) & ((w.clutch < 0.5) | (w.throttle > 0.15))
+    return bool(hit.sum() >= 3)
 
 
 def initiation(df, d, prev):
@@ -30,6 +46,7 @@ def initiation(df, d, prev):
     calm = pre.beta.abs().values < 5
     away = [i for i in range(len(sd)) if calm[i] and sd[i] < -40]
     flags["feint"] = bool(away and (sd[away[0]:] > 30).any() and not flags["transition"])
+    flags["handbrake"] = handbrake(df, t0)
     flags["clutch"] = bool((window(df, t0 - 1.0, t0 + 0.3).clutch < 0.5).any())
     brk = window(df, t0 - 1.2, t0 + 0.2)
     flags["brake"] = bool(brk.brake.max() > 0.25) if len(brk) else False

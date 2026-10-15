@@ -9,7 +9,7 @@
   --hair: #dce1e8; --axis: #c3cad4; --accent: #1d5fbf; --accent-wash: #e3ecf8; --good: #0a7d2c; --good-line: #0ca30c;
   --crit: #d03b3b; --serious: #ec835a; --warn: #fab219;
   --a0: #b9c1cc; --a1: #86b6ef; --a2: #3987e5; --a3: #1c5cab; --a4: #0d366b;
-  --t-power: #2a78d6; --t-lift: #eb6834; --t-feint: #1baf7a; --t-brake: #eda100; --t-clutch: #e87ba4; --t-transition: #008300; --t-other: #6250d6; --t-grip: #b9c1cc;
+  --t-power: #2a78d6; --t-lift: #eb6834; --t-feint: #1baf7a; --t-brake: #eda100; --t-clutch: #e87ba4; --t-transition: #008300; --t-other: #6250d6; --t-handbrake: #e34948; --t-grip: #b9c1cc;
   --display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
   --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -19,7 +19,7 @@
     --bg: #0d1218; --surface: #141b24; --ink: #e8edf3; --ink-2: #b2bccb; --muted: #7f8a99;
     --hair: #243040; --axis: #34404f; --accent: #5b98ec; --accent-wash: #1a2a40; --good: #2fbf5a; --good-line: #2fbf5a;
     --a0: #3e4856; --a1: #1c5cab; --a2: #2a78d6; --a3: #5598e7; --a4: #9ec5f4;
-    --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-grip: #3e4856;
+    --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-handbrake: #e66767; --t-grip: #3e4856;
     color-scheme: dark;
   }
 }
@@ -27,7 +27,7 @@
   --bg: #0d1218; --surface: #141b24; --ink: #e8edf3; --ink-2: #b2bccb; --muted: #7f8a99;
   --hair: #243040; --axis: #34404f; --accent: #5b98ec; --accent-wash: #1a2a40; --good: #2fbf5a; --good-line: #2fbf5a;
   --a0: #3e4856; --a1: #1c5cab; --a2: #2a78d6; --a3: #5598e7; --a4: #9ec5f4;
-  --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-grip: #3e4856;
+  --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-handbrake: #e66767; --t-grip: #3e4856;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -354,7 +354,7 @@ footer { font-size: 12px; color: var(--muted); }
       bands: { off: "pied levé (0–5 %)", low: "bas (5–40 %)", mid: "dosé (40–90 %)", full: "à fond (90–100 %)" },
       stabsDrift: "à-coups plein gaz ↔ pied levé par minute de glisse", stabsGrip: "par minute hors glisse, pour comparer",
       stabsHint: "Un à-coup = passer de plus de 85 % à moins de 10 % (ou l'inverse) en moins de 0,35 s.",
-      tech: { transition: "enchaînement", feint: "appel-contre-appel", clutch: "clutch kick", brake: "freinage", lift: "lever de pied", power: "gaz", other: "autre", grip: "passage en grip" },
+      tech: { transition: "enchaînement", handbrake: "frein à main", feint: "appel-contre-appel", clutch: "clutch kick", brake: "freinage", lift: "lever de pied", power: "gaz", other: "autre", grip: "passage en grip" },
       reason: { too_fast: "entrée trop rapide", rear_lock: "arrière bloqué", lift: "pied levé", late_cs: "contre-braquage tardif", over_angle: "trop d'angle", line: "placement", exit_wide: "sortie trop large", understeer: "sous-virage en grip" },
       cd: { rate: "réussite", entryOk: "entrée quand ça passe", entryKo: "entrée quand ça casse", brake: "début du freinage", angle: "angle moyen réussi", before: "m avant",
         insights: "Ce que disent les données", byTech: "Par technique de lancement", vsTitle: "Réussis vs ratés", attempts: "Tous les passages", map: "Tes trajectoires dans ce virage",
@@ -408,7 +408,7 @@ footer { font-size: 12px; color: var(--muted); }
       bands: { off: "foot off (0–5%)", low: "low (5–40%)", mid: "modulated (40–90%)", full: "flat out (90–100%)" },
       stabsDrift: "full-throttle ↔ foot-off stabs per minute of drifting", stabsGrip: "per minute in grip, for comparison",
       stabsHint: "A stab = going from above 85% to below 10% (or back) in under 0.35 s.",
-      tech: { transition: "transition", feint: "feint", clutch: "clutch kick", brake: "braking", lift: "lift-off", power: "power over", other: "other", grip: "grip pass" },
+      tech: { transition: "transition", handbrake: "handbrake", feint: "feint", clutch: "clutch kick", brake: "braking", lift: "lift-off", power: "power over", other: "other", grip: "grip pass" },
       reason: { too_fast: "too fast on entry", rear_lock: "rear lock", lift: "foot off", late_cs: "late counter-steer", over_angle: "too much angle", line: "line / placement", exit_wide: "ran wide on exit", understeer: "understeer in grip" },
       cd: { rate: "success", entryOk: "entry when it works", entryKo: "entry when it fails", brake: "braking starts", angle: "avg angle, successful", before: "m before",
         insights: "What the data says", byTech: "By initiation technique", vsTitle: "Successful vs failed", attempts: "Every pass", map: "Your lines through this corner",
@@ -434,7 +434,7 @@ footer { font-size: 12px; color: var(--muted); }
   const fmt = (v, d = 0) => (v === null || v === undefined || Number.isNaN(v)) ? "–" : Number(v).toLocaleString(L().nf, { minimumFractionDigits: d, maximumFractionDigits: d });
   const pct = (v, d = 0) => (v === null || v === undefined) ? "–" : fmt(v, d) + (state.lang === "fr" ? " %" : "%");
   const colon = () => state.lang === "fr" ? " : " : ": ";
-  const TECH_ORDER = ["power", "lift", "feint", "brake", "clutch", "transition", "other"];
+  const TECH_ORDER = ["power", "lift", "feint", "brake", "clutch", "transition", "handbrake", "other"];
   const tcol = t => `var(--t-${t})`;
 
   function prettyCar(s) {
