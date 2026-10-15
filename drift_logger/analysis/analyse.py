@@ -74,6 +74,7 @@ def prepare(df):
     df["segment"] = jump.cumsum()
     df["g"] = np.sqrt(df["acc_g_x"] ** 2 + df["acc_g_z"] ** 2)
     df["drifting"] = (df["beta"].abs() > DRIFT_ANGLE) & (df["speed_kmh"] > DRIFT_MIN_SPEED)
+    df["handbrake_on"] = technique.handbrake_mask(df)
     return df
 
 
@@ -120,11 +121,13 @@ def detect_events(df):
                   "speed": round(float(df.speed_kmh[i]), 0)})
         ev.append(e)
 
-    # rear wheels locked by engine braking (rpm collapses while in gear)
-    lock = (df.rpm < LOCK_RPM) & (df.gear >= 1) & (df.clutch > 0.9) & (df.speed_kmh > 30)
+    # rear wheels locked: handbrake, or rpm collapsing while in gear
+    lock = ((df.rpm < LOCK_RPM) & (df.gear >= 1) & (df.clutch > 0.9) & (df.speed_kmh > 30)) | df.handbrake_on
     for grp in group_times(list(df.index[lock]), 90):
+        hb = bool(df.handbrake_on[grp].sum() >= 3)
         e = point(df, grp[0])
-        e.update({"type": "lock", "rpm": int(df.rpm[grp].min()), "speed": round(float(df.speed_kmh[grp[0]]), 0)})
+        e.update({"type": "lock", "cause": "handbrake" if hb else "engine", "rpm": int(df.rpm[grp].min()),
+                  "speed": round(float(df.speed_kmh[grp[0]]), 0)})
         ev.append(e)
 
     # foot fully off the throttle while drifting (> 0.15 s)
@@ -296,6 +299,7 @@ def summarize(sid, meta, df, ev, dr, cs, stabs):
         "impacts": count("impact"), "impacts_grip": count("impact", "grip"), "impacts_drift": count("impact", "drift"),
         "impacts_heavy": sum(1 for e in ev if e["type"] == "impact" and e.get("loss", 99) > 10),
         "spins": count("spin"), "locks": count("lock"), "lifts": count("lift"),
+        "handbrakes": sum(1 for e in ev if e["type"] == "lock" and e.get("cause") == "handbrake"),
         "impacts_per_km": round(count("impact") / km, 2) if km > 0.05 else None,
         "max_speed": round(float(df.speed_kmh.max()), 0),
     }

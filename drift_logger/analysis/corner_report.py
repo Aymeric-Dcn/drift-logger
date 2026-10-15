@@ -12,9 +12,9 @@ T_FR = {"transition": "enchaînement", "handbrake": "frein à main", "feint": "a
         "lift": "lever de pied", "power": "gaz", "other": "autre", "grip": "en grip"}
 T_EN = {"transition": "transition", "handbrake": "handbrake", "feint": "feint", "clutch": "clutch kick", "brake": "braking",
         "lift": "lift-off", "power": "power over", "other": "other", "grip": "in grip"}
-R_FR = {"too_fast": "entrée trop rapide", "rear_lock": "arrière bloqué", "lift": "pied levé", "late_cs": "contre-braquage tardif",
+R_FR = {"handbrake_late": "frein à main en pleine glisse", "too_fast": "entrée trop rapide", "rear_lock": "arrière bloqué", "lift": "pied levé", "late_cs": "contre-braquage tardif",
         "over_angle": "trop d'angle", "line": "placement", "exit_wide": "sortie trop large", "understeer": "sous-virage"}
-R_EN = {"too_fast": "too fast on entry", "rear_lock": "rear lock", "lift": "foot off", "late_cs": "late counter-steer",
+R_EN = {"handbrake_late": "handbrake mid-drift", "too_fast": "too fast on entry", "rear_lock": "rear lock", "lift": "foot off", "late_cs": "late counter-steer",
         "over_angle": "too much angle", "line": "line / placement", "exit_wide": "ran wide on exit", "understeer": "understeer"}
 
 

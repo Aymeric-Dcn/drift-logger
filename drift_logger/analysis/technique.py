@@ -18,20 +18,20 @@ def window(df, t0, t1):
     return df[(df.time_s >= t0) & (df.time_s <= t1)]
 
 
+def handbrake_mask(df):
+    """Rear wheels much slower than the car (slip ratio below -0.4) with the brake
+    pedal released and the front wheels rolling: only the handbrake does that.
+    Engine braking cannot pull the rear wheels below engine idle speed."""
+    if "handbrake" in df and df.handbrake.notna().any():
+        return df.handbrake > 0.3
+    rear = df[["slip_ratio_rl", "slip_ratio_rr"]].mean(axis=1)
+    front = df[["slip_ratio_fl", "slip_ratio_fr"]].mean(axis=1)
+    return (rear < -0.4) & (front > -0.15) & (df.brake < 0.15) & (df.speed_kmh > 15)
+
+
 def handbrake(df, t0):
-    """Handbrake channel when the game exposes it, otherwise inferred: rear wheels
-    locking with the brake pedal released and the front wheels rolling, while the
-    clutch is in or the throttle is open. With the foot off and the clutch out,
-    the same lock comes from engine braking instead."""
-    w = window(df, t0 - 1.0, t0 + 0.2)
-    if not len(w):
-        return False
-    if "handbrake" in w and w.handbrake.notna().any():
-        return bool(w.handbrake.max() > 0.3)
-    rear = w[["slip_ratio_rl", "slip_ratio_rr"]].mean(axis=1)
-    front = w[["slip_ratio_fl", "slip_ratio_fr"]].mean(axis=1)
-    hit = (rear < -0.4) & (front > -0.15) & (w.brake < 0.15) & (w.rpm > 1500) & ((w.clutch < 0.5) | (w.throttle > 0.15))
-    return bool(hit.sum() >= 3)
+    w = window(df, t0 - 1.8, t0 + 0.2)
+    return bool(len(w) and w.handbrake_on.sum() >= 3)
 
 
 def initiation(df, d, prev):
@@ -82,8 +82,10 @@ def reasons(df, d, outcome, event, locks, cs_delay):
     """Most likely causes of a failed drift, strongest first."""
     out = []
     w = window(df, d["t0"], (event["t"] if event else d["t1"]))
-    if any(d["t0"] - 0.3 <= e["t"] <= d["t1"] for e in locks):
-        out.append("rear_lock")
+    for e in locks:
+        if d["t0"] - 0.3 <= e["t"] <= d["t1"]:
+            out.append("handbrake_late" if e.get("cause") == "handbrake" else "rear_lock")
+            break
     if len(w) and (w.throttle < 0.05).mean() > 0.2:
         out.append("lift")
     if cs_delay is not None and cs_delay > LATE_CS:
