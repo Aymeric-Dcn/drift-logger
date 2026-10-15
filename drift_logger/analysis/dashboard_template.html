@@ -11,6 +11,7 @@
   --a0: #b9c1cc; --a1: #86b6ef; --a2: #3987e5; --a3: #1c5cab; --a4: #0d366b;
   --t-power: #2a78d6; --t-lift: #eb6834; --t-feint: #1baf7a; --t-brake: #eda100; --t-clutch: #e87ba4; --t-transition: #008300; --t-other: #6250d6; --t-handbrake: #e34948; --t-grip: #b9c1cc;
   --p1: #e8590c; --p2: #7048e8; --p3: #0b7f8f;
+  --offroad: #e4e9e1; --road: #ccd3dc; --wall: #6f7a89;
   --display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
   --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -22,6 +23,7 @@
     --a0: #3e4856; --a1: #1c5cab; --a2: #2a78d6; --a3: #5598e7; --a4: #9ec5f4;
     --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-handbrake: #e66767; --t-grip: #3e4856;
     --p1: #ff8a3d; --p2: #9d80fb; --p3: #2bbcd2;
+    --offroad: #0e1317; --road: #242d38; --wall: #6b788a;
     color-scheme: dark;
   }
 }
@@ -31,6 +33,7 @@
   --a0: #3e4856; --a1: #1c5cab; --a2: #2a78d6; --a3: #5598e7; --a4: #9ec5f4;
   --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-handbrake: #e66767; --t-grip: #3e4856;
   --p1: #ff8a3d; --p2: #9d80fb; --p3: #2bbcd2;
+  --offroad: #0e1317; --road: #242d38; --wall: #6b788a;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -180,7 +183,7 @@ footer { font-size: 12px; color: var(--muted); }
 .btn[aria-pressed="true"] { background: var(--accent-wash); color: var(--accent); border-color: var(--accent); }
 .btn.mini { padding: 1px 7px; font-size: 10.5px; min-width: 0; }
 .replay { display: flex; flex-direction: column; gap: 10px; }
-.rp-stage { position: relative; border-radius: 8px; overflow: hidden; background: var(--bg); border: 1px solid var(--hair); }
+.rp-stage { position: relative; border-radius: 8px; overflow: hidden; background: var(--offroad); border: 1px solid var(--hair); }
 .rp-stage > svg { display: block; width: 100%; height: auto; }
 .rp-mini { position: absolute; top: 8px; right: 8px; background: var(--surface); opacity: .94; border: 1px solid var(--hair); border-radius: 6px; padding: 2px; }
 .rp-mini svg { display: block; width: 100%; height: auto; }
@@ -997,6 +1000,18 @@ footer { font-size: 12px; color: var(--muted); }
     return `<span class="sym"><svg width="30" height="16" viewBox="0 0 30 16"><rect x="2" y="4" width="18" height="8" rx="2" fill="var(--p1)"/><rect x="13" y="5" width="3" height="6" rx="1" fill="var(--surface)"/><line x1="11" y1="8" x2="26" y2="3" stroke="var(--ink)" stroke-width="1.5"/><path d="M28 2.4L24.6 2.2L25.8 5.2Z" fill="var(--ink)"/></svg>${R.legendCar}</span><span>${R.legendArrow}</span>`;
   }
 
+  /* the road: real edges from the track's AI line when available, else a band around the driven line */
+  function roadInto(g, tr, fallback) {
+    const e = tr.edges;
+    if (!e) { el("polyline", { points: fallback, fill: "none", stroke: "var(--road)", "stroke-width": 9, "stroke-linecap": "round", "stroke-linejoin": "round" }, g); return; }
+    const L = e.l, Rr = e.r, n = Math.min(L.x.length, Rr.x.length);
+    let d = "";
+    // one quad per edge segment: robust where the inner edge folds in hairpins
+    for (let i = 0; i < n - 1; i++) d += `M${L.x[i]} ${L.z[i]}L${L.x[i + 1]} ${L.z[i + 1]}L${Rr.x[i + 1]} ${Rr.z[i + 1]}L${Rr.x[i]} ${Rr.z[i]}Z`;
+    el("path", { d, fill: "var(--road)", stroke: "var(--road)", "stroke-width": 1, "vector-effect": "non-scaling-stroke" }, g);
+    [L, Rr].forEach(side => el("polyline", { points: side.x.map((x, i) => x + "," + side.z[i]).join(" "), fill: "none", stroke: "var(--wall)", "stroke-width": 1.5, "vector-effect": "non-scaling-stroke", "stroke-linejoin": "round" }, g));
+  }
+
   /* trail coloured by slip angle, in world metres */
   function angleTrail(g, t, width, i0, i1) {
     let run = [], bin = -1, seg = -1;
@@ -1018,7 +1033,7 @@ footer { font-size: 12px; color: var(--muted); }
     stage.insertBefore(svg, stage.firstChild);
     const world = el("g", {}, svg);
     const refPts = tr.ref_trace.x.map((x, i) => x.toFixed(1) + "," + tr.ref_trace.z[i].toFixed(1)).join(" ");
-    el("polyline", { points: refPts, fill: "none", stroke: "var(--axis)", "stroke-opacity": .45, "stroke-width": 9, "stroke-linecap": "round", "stroke-linejoin": "round" }, world);
+    roadInto(world, tr, refPts);
     angleTrail(world, t, 3);
     const badges = tr.corners.map(c => {
       const g = el("g", {}, world);
@@ -1143,7 +1158,7 @@ footer { font-size: 12px; color: var(--muted); }
     box.innerHTML = `<div class="rp-stage"></div><div class="rp-bar"></div><div class="hud"></div>`;
     const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": R.title }, box.querySelector(".rp-stage"));
     const world = el("g", { transform: `translate(${ox.toFixed(1)} ${oz.toFixed(1)}) scale(${k.toFixed(4)}) translate(${(-minx).toFixed(1)} ${(-minz).toFixed(1)})` }, svg);
-    el("polyline", { points: refI.map(i => tr.ref_trace.x[i] + "," + tr.ref_trace.z[i]).join(" "), fill: "none", stroke: "var(--axis)", "stroke-opacity": .45, "stroke-width": 9, "stroke-linecap": "round", "stroke-linejoin": "round" }, world);
+    roadInto(world, tr, refI.map(i => tr.ref_trace.x[i] + "," + tr.ref_trace.z[i]).join(" "));
     const line = (p, attrs) => {
       const pp = []; for (let i = p.i0; i <= p.i1; i++) pp.push(p.t.x[i].toFixed(1) + "," + p.t.z[i].toFixed(1));
       return el("polyline", Object.assign({ points: pp.join(" "), fill: "none", "vector-effect": "non-scaling-stroke", "stroke-linecap": "round", "stroke-linejoin": "round" }, attrs), world);

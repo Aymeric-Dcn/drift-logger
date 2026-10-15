@@ -25,6 +25,7 @@ import pandas as pd
 
 import corner_report
 import technique
+import track_edges
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SESS_DIR = os.path.join(HERE, "sessions")
@@ -395,7 +396,8 @@ def update_track(track, sessions):
         c["trouble"] = (st["attempts"] - st["success"]) * 3 + c["spins"] + c["late_cs"] + c["locks"]
         del c["angle_sum"], c["entry_sum"]
     data = {"track": track, "ref_session": ref["summary"]["id"], "corners": corners, "attempts": attempts,
-            "ref_trace": {k: ref["trace"][k] for k in ("x", "z", "pos")}}
+            "ref_trace": {k: ref["trace"][k] for k in ("x", "z", "pos")},
+            "edges": track_edges.edges(track)}
     with open(os.path.join(TRACK_DIR, safe(track) + ".json"), "w") as f:
         json.dump(data, f)
     return data
