@@ -23,7 +23,9 @@ import sys
 import numpy as np
 import pandas as pd
 
+import car_specs
 import corner_report
+import physics
 import technique
 import track_edges
 
@@ -266,14 +268,15 @@ def detect_corners(df):
             start = i
         elif not v and start is not None:
             end = i - 1
-            if (end - start) * 2.0 >= CORNER_MIN_LEN:
+            # past the finish line the spline position sticks at 1.0: not a corner
+            if (end - start) * 2.0 >= CORNER_MIN_LEN and p[end] - p[start] > 0.0005:
                 turn = math.degrees(head[end] - head[start])
                 apex = start + int(np.argmax(np.abs(curv[start:end + 1])))
                 corners.append({"pos0": round(float(p[start]), 5), "pos1": round(float(p[end]), 5),
                                 "x": round(float(x[apex]), 1), "z": round(float(z[apex]), 1),
                                 "turn": round(turn, 0),
                                 "radius": round(float(1 / max(abs(curv[apex]), 1e-4)), 0),
-                                "dir": "left" if turn > 0 else "right"})
+                                "dir": "right" if turn > 0 else "left"})
             start = None
     merged = []  # join very close corners turning the same way
     for c in corners:
@@ -299,7 +302,9 @@ def downsample(df, hz=10):
             "rpm": s.rpm.round(-1).tolist(), "seg": s.segment.astype(int).tolist(),
             # for the replay: heading, signed slip angle, clutch, handbrake
             "hd": s.heading.round(1).tolist(), "sb": s.beta.round(1).tolist(),
-            "clu": s.clutch.round(2).tolist(), "hb": s.handbrake_on.astype(int).tolist()}
+            "clu": s.clutch.round(2).tolist(), "hb": s.handbrake_on.astype(int).tolist(),
+            # g-forces: lateral (+ = left), longitudinal (+ = accelerating)
+            "glat": s.acc_g_x.round(2).tolist(), "glon": s.acc_g_z.round(2).tolist()}
 
 
 def summarize(sid, meta, df, ev, dr, cs, stabs):
@@ -415,7 +420,14 @@ def analyse_file(path):
     stabs = throttle_stabs(df)
     cs = countersteer_delays(df)
     dr = technique.analyse_drifts(df, find_drifts(df, stabs), ev, cs)
-    return {"summary": summarize(sid, meta, df, ev, dr, cs, stabs), "events": ev, "drifts": dr,
+    spec = car_specs.load(meta.get("car", ""))
+    physics.drift_physics(df, dr, spec)
+    ab = physics.aborted(df, dr, spec)
+    summary = summarize(sid, meta, df, ev, dr, cs, stabs)
+    summary.update({"aborted": len(ab), "gears": physics.gear_speeds(df), "gforce": physics.g_stats(df)})
+    pw = [d["pw"] for d in dr if d.get("pw") is not None]
+    summary["drift_pw"] = round(float(np.mean(pw)), 0) if pw else None
+    return {"summary": summary, "events": ev, "drifts": dr, "aborted": ab, "car_spec": spec,
             "countersteer": cs, "stabs": stabs, "corners": detect_corners(df),
             "trace": downsample(df), "file": os.path.basename(path)}
 
