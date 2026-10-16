@@ -168,6 +168,9 @@ th:first-child, td:first-child { text-align: left; }
 td { padding: 7px 8px; border-bottom: 1px solid var(--hair); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 td.l, th.l { text-align: left; }
 tr.hov:hover td { background: var(--accent-wash); }
+th button.sort { font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; white-space: nowrap; }
+th button.sort:hover { color: var(--ink); }
+th[aria-sort="ascending"] button.sort, th[aria-sort="descending"] button.sort { color: var(--accent); }
 .table-scroll { overflow-x: auto; }
 .status { display: inline-flex; align-items: center; gap: 5px; }
 .two { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 20px; }
@@ -316,6 +319,16 @@ footer { font-size: 12px; color: var(--muted); }
     <section class="panel">
       <div class="panel-head"><h2 data-i18n="techSummary"></h2><span class="note" id="tech-scope"></span></div>
       <ul class="insights" id="tech-insights"></ul>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2 data-i18n="angTitle"></h2><span class="note" id="ang-scope"></span></div>
+      <div class="tiles" id="ang-tiles"></div>
+      <ul class="insights" id="ang-ins"></ul>
+      <div class="two">
+        <div><h3 data-i18n="angRate"></h3><div class="map-box" id="ang-hist"></div><div class="legend" id="ang-legend"></div></div>
+        <div><div class="panel-head"><h3 data-i18n="angTop"></h3><div class="seg" role="group"><button id="ang-ok" data-i18n="angOk"></button><button id="ang-all" data-i18n="angAll"></button></div></div>
+          <div class="table-scroll"><table id="ang-top"></table></div></div>
+      </div>
     </section>
     <div class="two">
       <section class="panel">
@@ -489,6 +502,13 @@ footer { font-size: 12px; color: var(--muted); }
         cols: ["Temps", "Virage", "Rapport", "Régime moy.", "Puissance", "Patinage AR", "Vitesse km/h/s", "G moy.", "Volant en butée", "Régime", "Fin"],
         rev: { band: "dans la zone", low: "sous-régime", limiter: "rupteur" },
         insLock: (a, n, b, m) => `Volant en butée plus de 0,5 s : ${a}/${n} glisses réussies` + (m ? ` (contre ${b}/${m} quand tu ne fais que la toucher)` : "") + `. En butée, il ne reste plus de contre-braquage : réduis l'angle avant d'y arriver.` },
+      angTitle: "Angles", angRate: "Réussite selon l'angle maximum atteint", angTop: "Tes plus grosses glisses", angOk: "Réussies", angAll: "Toutes",
+      ang: { tMax: "angle max sur une glisse réussie", tAvg: "plus gros angle moyen réussi", tLong: "plus longue glisse réussie à 30° ou plus", tHigh: "de réussite au-delà de 50°",
+        rate: "Réussite selon l'angle maximum", legOk: "réussies", legKo: "ratées", binTip: (a, b) => `Angle max entre ${a} et ${b}°`, okOf: (a, n) => `${a} réussies sur ${n}`,
+        insCut: (a, rb, ra, k, n) => `Ta limite actuelle est vers ${a}° : en dessous, ${rb} % de réussite ; au-delà, ${ra} % (${k}/${n}).`,
+        insCars: s => `Angle max réussi par voiture : ${s}.`,
+        insSweet: (a, b, r, n) => `Ta zone la plus sûre : ${a}–${b}° d'angle max, ${r} % de réussite sur ${n} glisses.`,
+        cols: ["Angle max", "Angle moy.", "Durée", "Entrée", "Virage", "Voiture", "Session", "Lancement", "Fin"] },
       up: "montée", down: "descente", nf: "fr-FR",
     },
     en: {
@@ -588,6 +608,13 @@ footer { font-size: 12px; color: var(--muted); }
         cols: ["Time", "Corner", "Gear", "Avg revs", "Power", "Rear spin", "Speed km/h/s", "Avg g", "Wheel at lock", "Revs", "End"],
         rev: { band: "in the band", low: "too low", limiter: "limiter" },
         insLock: (a, n, b, m) => `Wheel against the lock for more than 0.5 s: ${a}/${n} drifts successful` + (m ? ` (against ${b}/${m} when you only touch it)` : "") + `. At the lock there is no counter-steer left: take angle off before you get there.` },
+      angTitle: "Angles", angRate: "Success by maximum angle reached", angTop: "Your biggest drifts", angOk: "Successful", angAll: "All",
+      ang: { tMax: "max angle on a successful drift", tAvg: "biggest successful average angle", tLong: "longest successful drift at 30° or more", tHigh: "success above 50°",
+        rate: "Success by maximum angle", legOk: "successful", legKo: "failed", binTip: (a, b) => `Max angle between ${a} and ${b}°`, okOf: (a, n) => `${a} successful out of ${n}`,
+        insCut: (a, rb, ra, k, n) => `Your current limit is around ${a}°: below it, ${rb}% success; above it, ${ra}% (${k}/${n}).`,
+        insCars: s => `Max successful angle per car: ${s}.`,
+        insSweet: (a, b, r, n) => `Your safest zone: ${a}–${b}° max angle, ${r}% success over ${n} drifts.`,
+        cols: ["Max angle", "Avg angle", "Duration", "Entry", "Corner", "Car", "Session", "Initiation", "End"] },
       up: "uphill", down: "downhill", nf: "en-GB",
     },
   };
@@ -903,15 +930,120 @@ footer { font-size: 12px; color: var(--muted); }
     const ses = currentSession(), tb = $("drifts");
     if (!ses) { tb.innerHTML = ""; $("drift-count").textContent = ""; return; }
     $("drift-count").textContent = L().driftsN(ses.drifts.length);
-    tb.innerHTML = `<thead><tr><th></th>${L().table.map((h, i) => `<th${i === 2 || i === 10 ? ' class="l"' : ""}>${h}</th>`).join("")}</tr></thead><tbody>` + ses.drifts.map(d =>
+    const cur = state.dsort || { k: "t0", dir: 1 };
+    tb.innerHTML = `<thead><tr><th></th>${sortHead(L().table, DRIFT_KEYS, cur, [2, 10])}</tr></thead><tbody>` + sortedDrifts(ses.drifts).map(d =>
       `<tr><td><button class="btn mini" data-play="${d.t0}" title="${L().rp.playDrift}" aria-label="${L().rp.playDrift}">▶</button></td><td class="mono">${fmt(d.t0, 1)} s</td><td>${d.corner ? L().C + d.corner : "–"}</td><td class="l"><span class="status"><span class="dot" style="background:${tcol(d.technique)}"></span>${L().tech[d.technique]}</span></td><td>${d.gear}</td><td>${fmt(d.entry)} km/h</td><td>${fmt(d.avg_angle)}°</td><td>${fmt(d.max_angle)}°</td><td>${pct(d.lift_pct)}</td><td>${pct(d.thr_mid)}</td><td><span class="score">${d.score}</span></td><td class="l">${outcomeCell(d.outcome, d.reasons)}</td></tr>`
     ).join("") + "</tbody>";
+    tb.querySelectorAll("button.sort").forEach(b => b.addEventListener("click", () => {
+      const k = b.dataset.k;
+      // angles, scores, speeds: biggest first on the first click
+      state.dsort = { k, dir: cur.k === k ? -cur.dir : (["t0", "corner", "technique", "outcome", "gear"].includes(k) ? 1 : -1) };
+      renderDrifts();
+    }));
     tb.querySelectorAll("[data-play]").forEach(b => b.addEventListener("click", () => {
       state.rpTau = Math.max(0, +b.dataset.play - 1.5); state.rpSid = state.session;
       if (state.mode !== "replay") { state.mode = "replay"; save(); renderChrome(); renderMap(); syncStrip(); }
       if (sessionPlayer) sessionPlayer.seek(state.rpTau, true);
       $("map").scrollIntoView({ behavior: "smooth", block: "center" });
     }));
+  }
+
+  /* ---------- angles: sortable drift table helpers + records ---------- */
+  const DRIFT_KEYS = ["t0", "corner", "technique", "gear", "entry", "avg_angle", "max_angle", "lift_pct", "thr_mid", "score", "outcome"];
+  const OUT_RANK = { clean: 0, exit_touch: 1, bogged: 2, impact: 3, spin: 4 };
+  function sortVal(d, k) {
+    if (k === "technique") return L().tech[d.technique] || "";
+    if (k === "outcome") return OUT_RANK[d.outcome] ?? 9;
+    if (k === "corner") return d.corner ?? 999;
+    return d[k] ?? -1;
+  }
+  function sortedDrifts(list) {
+    const s = state.dsort || { k: "t0", dir: 1 };
+    return list.slice().sort((a, b) => { const x = sortVal(a, s.k), y = sortVal(b, s.k); return (x < y ? -1 : x > y ? 1 : a.t0 - b.t0) * s.dir; });
+  }
+  function sortHead(labels, keys, cur, leftIdx, onSort) {
+    return labels.map((h, i) => {
+      const k = keys[i], on = cur.k === k, arrow = on ? (cur.dir > 0 ? " ▲" : " ▼") : "";
+      return `<th${leftIdx.includes(i) ? ' class="l"' : ""} aria-sort="${on ? (cur.dir > 0 ? "ascending" : "descending") : "none"}"><button class="sort" data-k="${k}">${h}${arrow}</button></th>`;
+    }).join("");
+  }
+  function playDrift(sid, t0) {
+    state.session = sid; state.tab = "session"; state.mode = "replay";
+    state.rpTau = Math.max(0, t0 - 1.5); state.rpSid = sid; save(); renderAll();
+    if (sessionPlayer) sessionPlayer.seek(state.rpTau, true);
+    $("map").scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function renderAngles() {
+    const G = L().ang, ids = filtered().map(s => s.id), all = [];
+    ids.forEach(id => { const s = D.sessions[id], h = history.find(x => x.id === id); if (s) s.drifts.forEach(d => all.push(Object.assign({ sid: id, car: h.car, date: h.date }, d))); });
+    ["ang-tiles", "ang-hist", "ang-legend", "ang-top", "ang-ins"].forEach(i => { $(i).innerHTML = ""; });
+    $("ang-scope").textContent = L().driftsN(all.length);
+    if (!all.length) return;
+    const ok = all.filter(d => d.success), dur = d => d.t1 - d.t0;
+    const where = d => `${prettyCar(d.car)} · ${d.corner ? L().C + d.corner : "–"} · ${shortDate(d.date)}`;
+    const best = (a, f) => a.length ? a.reduce((m, d) => f(d) > f(m) ? d : m) : null;
+    const bMax = best(ok, d => d.max_angle), bAvg = best(ok, d => d.avg_angle), bLong = best(ok.filter(d => d.avg_angle >= 30), dur);
+    const hi = all.filter(d => d.max_angle >= 50);
+    const tiles = [
+      [bMax ? fmt(bMax.max_angle) + "°" : "–", G.tMax, bMax ? where(bMax) : ""],
+      [bAvg ? fmt(bAvg.avg_angle) + "°" : "–", G.tAvg, bAvg ? where(bAvg) : ""],
+      [bLong ? fmt(dur(bLong), 1) + " s" : "–", G.tLong, bLong ? `${fmt(bLong.avg_angle)}° · ` + where(bLong) : ""],
+      [hi.length ? pct(100 * hi.filter(d => d.success).length / hi.length) : "–", G.tHigh, hi.length ? `${hi.filter(d => d.success).length}/${hi.length}` : ""],
+    ];
+    $("ang-tiles").innerHTML = tiles.map(([v, l, s]) => `<div class="tile"><span class="v">${v}</span><span class="l">${l}</span><span class="s">${s}</span></div>`).join("");
+
+    // success by maximum angle reached
+    const edges = [12, 20, 30, 40, 50, 60, 70, 80, 91];
+    const bins = edges.slice(0, -1).map((lo, i) => { const x = all.filter(d => d.max_angle >= lo && d.max_angle < edges[i + 1]); return { lo, hi: edges[i + 1], n: x.length, ok: x.filter(d => d.success).length }; });
+    const W = 520, H = 250, l = 34, r = 10, t = 22, b = 30, nmax = Math.max(...bins.map(x => x.n), 1);
+    const bw = (W - l - r) / bins.length, Y = v => t + (1 - v / nmax) * (H - t - b);
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": G.rate }, $("ang-hist"));
+    const step = nmax > 20 ? 10 : nmax > 8 ? 5 : 2;
+    for (let v = 0; v <= nmax; v += step) { el("line", { x1: l, x2: W - r, y1: Y(v), y2: Y(v), stroke: v ? "var(--hair)" : "var(--axis)" }, svg); txt(svg, l - 6, Y(v) + 4, v, { "text-anchor": "end" }); }
+    bins.forEach((bn, i) => {
+      const x = l + i * bw + 4, w = bw - 8, g = el("g", {}, svg);
+      if (bn.ok) el("rect", { x, width: w, y: Y(bn.ok), height: Y(0) - Y(bn.ok), fill: "var(--good-line)", rx: 2 }, g);
+      if (bn.n - bn.ok) el("rect", { x, width: w, y: Y(bn.n), height: Y(bn.ok) - Y(bn.n) - (bn.ok ? 1.5 : 0), fill: "var(--crit)", rx: 2 }, g);
+      if (bn.n) txt(g, x + w / 2, Y(bn.n) - 6, pct(100 * bn.ok / bn.n), { "text-anchor": "middle", fill: "var(--ink-2)", "font-size": 10.5 });
+      txt(svg, x + w / 2, H - b + 16, bn.hi > 90 ? "80°+" : `${bn.lo}–${bn.hi}°`, { "text-anchor": "middle", "font-size": 10.5 });
+      el("rect", { x, width: w, y: t, height: H - t - b, fill: "transparent" }, g);
+      g.addEventListener("mousemove", e => showTip(`<b>${G.binTip(bn.lo, bn.hi > 90 ? 90 : bn.hi)}</b><br>${G.okOf(bn.ok, bn.n)}`, e)); g.addEventListener("mouseleave", hideTip);
+    });
+    $("ang-legend").innerHTML = `<span class="sym"><i class="sw" style="background:var(--good-line)"></i>${G.legOk}</span><span class="sym"><i class="sw" style="background:var(--crit)"></i>${G.legKo}</span>`;
+
+    // insights: where success drops, and per-car records
+    const ins = [];
+    // the limit: the lowest angle above which you succeed less than half the time
+    let cut = null;
+    for (const lo of [30, 40, 50, 60, 70]) {
+      const below = all.filter(d => d.max_angle < lo), above = all.filter(d => d.max_angle >= lo);
+      if (below.length >= 5 && above.length >= 3) {
+        const rb = below.filter(d => d.success).length / below.length, ra = above.filter(d => d.success).length / above.length;
+        if (ra < .5) { cut = { lo, rb, ra, na: above.length, oka: above.filter(d => d.success).length }; break; }
+      }
+    }
+    if (cut) ins.push(G.insCut(cut.lo, fmt(cut.rb * 100), fmt(cut.ra * 100), cut.oka, cut.na));
+    const cars = [...new Set(all.map(d => d.car))];
+    if (cars.length > 1) ins.push(G.insCars(cars.map(c => { const m = best(ok.filter(d => d.car === c), d => d.max_angle); return `${prettyCar(c)} ${m ? fmt(m.max_angle) + "°" : "–"}`; }).join(" · ")));
+    const sweet = bins.filter(x => x.n >= 3).sort((a, b2) => b2.ok / b2.n - a.ok / a.n || b2.lo - a.lo)[0];
+    if (sweet) ins.push(G.insSweet(sweet.lo, sweet.hi > 90 ? 90 : sweet.hi, fmt(100 * sweet.ok / sweet.n), sweet.n));
+    $("ang-ins").innerHTML = ins.map(i => `<li><span>${i}</span></li>`).join("");
+
+    // biggest drifts, sortable
+    const list = (state.angAll ? all : ok).slice();
+    const cur = state.asort || { k: "max_angle", dir: -1 };
+    const keys = ["max_angle", "avg_angle", "dur", "entry", "corner", "car", "date", "technique", "outcome"];
+    const val = (d, k) => k === "dur" ? dur(d) : k === "car" ? prettyCar(d.car) : k === "date" ? d.sid + d.t0 / 1e4 : sortVal(d, k);
+    list.sort((a, b2) => { const x = val(a, cur.k), y = val(b2, cur.k); return (x < y ? -1 : x > y ? 1 : 0) * cur.dir; });
+    const rows = list.slice(0, 15);
+    $("ang-top").innerHTML = `<thead><tr><th></th>${sortHead(G.cols, keys, cur, [5, 6, 7, 8])}</tr></thead><tbody>` + rows.map(d =>
+      `<tr><td><button class="btn mini" data-sid="${d.sid}" data-t0="${d.t0}" title="${L().rp.playDrift}" aria-label="${L().rp.playDrift}">▶</button></td><td><b>${fmt(d.max_angle)}°</b></td><td>${fmt(d.avg_angle)}°</td><td>${fmt(dur(d), 1)} s</td><td>${fmt(d.entry)} km/h</td><td>${d.corner ? L().C + d.corner : "–"}</td><td class="l">${prettyCar(d.car)}</td><td class="l mono">${shortDate(d.date)}</td><td class="l"><span class="status"><span class="dot" style="background:${tcol(d.technique)}"></span>${L().tech[d.technique]}</span></td><td class="l">${outcomeCell(d.outcome, d.reasons)}</td></tr>`).join("") + "</tbody>";
+    $("ang-top").querySelectorAll("button.sort").forEach(bt => bt.addEventListener("click", () => {
+      const k = bt.dataset.k; state.asort = { k, dir: cur.k === k ? -cur.dir : (["corner", "car", "technique", "outcome"].includes(k) ? 1 : -1) }; renderAngles();
+    }));
+    $("ang-top").querySelectorAll("[data-sid]").forEach(bt => bt.addEventListener("click", () => playDrift(bt.dataset.sid, +bt.dataset.t0)));
+    $("ang-ok").setAttribute("aria-pressed", !state.angAll); $("ang-all").setAttribute("aria-pressed", !!state.angAll);
   }
 
   /* ---------- corners tab ---------- */
@@ -1627,7 +1759,7 @@ footer { font-size: 12px; color: var(--muted); }
     renderChrome();
     if (state.tab === "session") { renderBand(); renderCoach(); renderMap(); renderSessionCorners(); renderThrottle(); renderStrip(); renderDrifts(); if (sessionPlayer) sessionPlayer.redraw(); }
     if (state.tab === "corners") { renderCornerList(); renderCornerDetail(); }
-    if (state.tab === "techniques") renderTechniques();
+    if (state.tab === "techniques") { renderTechniques(); renderAngles(); }
     if (state.tab === "advanced") renderAdvanced();
     if (state.tab === "progress") { renderEvo(); aggTable("by-car", "car", prettyCar); aggTable("by-track", "track", prettyTrack); }
   }
@@ -1640,6 +1772,8 @@ footer { font-size: 12px; color: var(--muted); }
   $("m-replay").addEventListener("click", () => { state.mode = "replay"; save(); renderAll(); });
   $("cs-trouble").addEventListener("click", () => { state.csort = "trouble"; save(); renderAll(); });
   $("cs-order").addEventListener("click", () => { state.csort = "order"; save(); renderAll(); });
+  $("ang-ok").addEventListener("click", () => { state.angAll = false; renderAngles(); });
+  $("ang-all").addEventListener("click", () => { state.angAll = true; renderAngles(); });
   $("l-fr").addEventListener("click", () => { state.lang = "fr"; save(); renderAll(); });
   $("l-en").addEventListener("click", () => { state.lang = "en"; save(); renderAll(); });
   renderAll();
