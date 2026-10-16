@@ -32,6 +32,16 @@ The car is redrawn as a top-down rectangle: body, light window at the front, fro
 
 The road is drawn with its real edges, read from the track's AI line (`ai/fast_lane.ai` stores how far the road extends on each side). The Assetto Corsa folder is found in the usual Steam locations, or set `AC_ROOT`. Without it, a band around the driven line is drawn instead.
 
+## Advanced tab
+
+Reads the car's power curve and weight from `content/cars/<car>/ui/ui_car.json` and explains why drifts live or die:
+
+- each drift placed on the power curve at its average revs, with the useful band (≥ 85% of peak power);
+- for each gear, the speeds where the engine is in that band, with the entry speed of every drift, which shows speed ranges where no gear works;
+- a G-force meter (lateral vs longitudinal, coloured by slip angle) with max lateral, braking and acceleration g;
+- initiations including aborted ones (the rear stepped out 6 to 12° then gripped again), so the success rate of each technique counts every attempt;
+- per drift: revs, share of peak power, rear wheelspin, speed gained or lost per second, average g and time with the steering wheel against its lock.
+
 AC's Python API has no world heading, so it is rebuilt: the yaw rate is integrated and its slow drift is corrected with the direction of travel minus the slip angle (about 0.4° median error).
 
 Corners are detected from the path's curvature (radius under 90 m) and numbered by their position along the track spline, so a corner keeps its number from one session to the next. Each corner gets cumulative stats (passes, drifts, average angle, impacts, spins) and a trouble score.

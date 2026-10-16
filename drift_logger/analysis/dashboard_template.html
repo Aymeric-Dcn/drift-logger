@@ -258,6 +258,7 @@ footer { font-size: 12px; color: var(--muted); }
     <button role="tab" data-tab="corners" id="t-corners"></button>
     <button role="tab" data-tab="techniques" id="t-techniques"></button>
     <button role="tab" data-tab="progress" id="t-progress"></button>
+    <button role="tab" data-tab="advanced" id="t-advanced"></button>
   </nav>
 
   <!-- SESSION -->
@@ -353,6 +354,28 @@ footer { font-size: 12px; color: var(--muted); }
     </div>
   </div>
 
+  <!-- ADVANCED -->
+  <div class="tab" id="tab-advanced" role="tabpanel" hidden>
+    <section class="session-band">
+      <div class="session-meta" id="adv-car"></div>
+      <div class="kpis" id="adv-kpis"></div>
+    </section>
+    <div class="two">
+      <section class="panel"><div class="panel-head"><h2 data-i18n="advPower"></h2><span class="note" data-i18n="advPowerNote"></span></div>
+        <div class="map-box" id="adv-power"></div><div class="legend" id="adv-power-legend"></div><ul class="insights" id="adv-power-ins"></ul></section>
+      <section class="panel"><div class="panel-head"><h2 data-i18n="advGears"></h2><span class="note" data-i18n="advGearsNote"></span></div>
+        <div class="map-box" id="adv-gears"></div><ul class="insights" id="adv-gears-ins"></ul></section>
+    </div>
+    <div class="two">
+      <section class="panel"><div class="panel-head"><h2 data-i18n="advG"></h2><span class="note" data-i18n="advGNote"></span></div>
+        <div class="map-box" id="adv-gg"></div><div class="legend" id="adv-gg-legend"></div></section>
+      <section class="panel"><div class="panel-head"><h2 data-i18n="advStarts"></h2><span class="note" data-i18n="advStartsNote"></span></div>
+        <div class="table-scroll"><table id="adv-starts"></table></div><ul class="insights" id="adv-starts-ins"></ul></section>
+    </div>
+    <section class="panel"><div class="panel-head"><h2 data-i18n="advDrifts"></h2><span class="note" data-i18n="advDriftsNote"></span></div>
+      <div class="table-scroll"><table id="adv-table"></table></div><ul class="insights" id="adv-table-ins"></ul></section>
+  </div>
+
   <footer id="foot"></footer>
 </div>
 <div id="tip" hidden></div>
@@ -367,7 +390,7 @@ footer { font-size: 12px; color: var(--muted); }
   const I18N = {
     fr: {
       telemetry: "télémétrie", road: "Route", car: "Voiture", session: "Session", language: "Langue",
-      tabs: { session: "Session", corners: "Virages", techniques: "Techniques", progress: "Progression" },
+      tabs: { session: "Session", corners: "Virages", techniques: "Techniques", progress: "Progression", advanced: "Avancé" },
       coaching: "Coaching", mapTitle: "La route, virage par virage", thisSession: "Cette session", allSessions: "Toutes les sessions",
       sessionCorners: "Virages de ce run", clickCorner: "Clique pour le détail",
       cornersTitle: "Virages", sortTrouble: "Les plus traîtres", sortOrder: "Dans l'ordre",
@@ -425,11 +448,35 @@ footer { font-size: 12px; color: var(--muted); }
         title: "Rejouer le virage", hint: "Choisis jusqu'à 3 passages : ils partent ensemble à l'entrée du virage (temps 0).",
         legendCar: "ta voiture (vitre claire = l'avant, roues avant = ton volant)", legendArrow: "Flèche = où la voiture va vraiment. L'écart entre la flèche et le nez, c'est l'angle de dérive. Contours = la voiture juste avant.",
         playDrift: "Rejouer cette glisse", stripHint: "Clique sur les courbes pour y placer le replay" },
+      advPower: "Puissance disponible en glisse", advPowerNote: "Chaque point = une glisse, placée à son régime moyen sur la courbe du moteur",
+      advGears: "Rapport engagé et zone de puissance", advGearsNote: "En vert : les vitesses où le moteur est dans sa zone utile, rapport par rapport. Traits : vitesse d'entrée de tes glisses",
+      advG: "Calculateur de G", advGNote: "Un point toutes les 0,1 s : accélération latérale et longitudinale",
+      advStarts: "Départs de glisse", advStartsNote: "Une tentative = une glisse lancée ou un départ avorté",
+      advDrifts: "La physique de chaque glisse", advDriftsNote: "Patinage AR : de combien les roues arrière tournent plus vite que la voiture avance. Vitesse : km/h gagnés (+) ou perdus (−) par seconde de glisse",
+      adv: { hp: "ch", rpm: "tr/min", band: "Zone utile (≥ 85 % de la puissance)",
+        vs: (n, kg, x) => `${n} : ${kg} kg/ch, soit ${x}× plus de puissance par kilo`,
+        noSpec: "Courbe de puissance introuvable : relance l'analyse avec le dossier d'Assetto Corsa accessible (variable AC_ROOT si besoin).",
+        k: { pw: "de la puissance max, en moyenne en glisse", launch: "des départs deviennent des glisses", lat: "G latéral max", brake: "G au freinage max", acc: "G en accélération max", drift: "G moyen en glisse" },
+        power: "Courbe de puissance", rpmAxis: "régime (× 1000 tr/min)", gearN: g => g === 1 ? "1re" : `${g}e`, ofPower: "de la puissance",
+        abortedOne: "Départ avorté", bandLegend: "zone utile", legOk: "glisse réussie", legKo: "glisse ratée", legAb: "départ avorté",
+        insBand: (a, b) => `Dans la zone utile : ${a} glisses réussies.` + (b ? ` En dessous : ${b}.` : ""),
+        insLow: p => `En sous-régime, le moteur ne donne que ${p} % de sa puissance en moyenne : l'arrière arrête de patiner et la voiture se raccroche.`,
+        insLim: n => `${n} glisse${n > 1 ? "s" : ""} au rupteur : passe le rapport au-dessus ou entre un peu moins vite.`,
+        gears: "Vitesse et rapport", bandRange: (lo, hi, r0, r1) => `${lo}–${hi} km/h entre ${r0} et ${r1} tr/min`,
+        insGap: (a, b, g1, g2, r) => `Entre ${a} et ${b} km/h, aucun rapport n'est dans la zone : en ${g1 === 1 ? "1re" : g1 + "e"} tu tapes le rupteur, en ${g2}e tu es sous ${r} tr/min. Dans cette plage, entre un peu moins vite en ${g1 === 1 ? "1re" : g1 + "e"}, ou relance au clutch kick en ${g2}e.`,
+        insGear: (g, ok, n, pw) => `En ${g === 1 ? "1re" : g + "e"} : ${ok}/${n} glisses réussies, ${pw} % de la puissance en moyenne.`,
+        g: "Calculateur de G", accel: "accélération", braking: "freinage", left: "← gauche", right: "droite →",
+        startCols: ["Lancement", "Tentatives", "Avortés", "Glisses", "Réussies", "Réussite"],
+        insStart: (b, bo, bn, w, wo, wn) => `Ton départ le plus fiable avec cette voiture : ${b} (${bo}/${bn} tentatives réussies). Le plus dur : ${w} (${wo}/${wn}).`,
+        insAb: (n, low) => `${n} départs avortés : l'arrière a commencé à glisser (6 à 12°) puis s'est raccroché.` + (low ? ` ${low} d'entre eux sous 80 % de la puissance.` : ""),
+        cols: ["Temps", "Virage", "Rapport", "Régime moy.", "Puissance", "Patinage AR", "Vitesse km/h/s", "G moy.", "Volant en butée", "Régime", "Fin"],
+        rev: { band: "dans la zone", low: "sous-régime", limiter: "rupteur" },
+        insLock: (a, n, b, m) => `Volant en butée plus de 0,5 s : ${a}/${n} glisses réussies` + (m ? ` (contre ${b}/${m} quand tu ne fais que la toucher)` : "") + `. En butée, il ne reste plus de contre-braquage : réduis l'angle avant d'y arriver.` },
       up: "montée", down: "descente", nf: "fr-FR",
     },
     en: {
       telemetry: "telemetry", road: "Road", car: "Car", session: "Session", language: "Language",
-      tabs: { session: "Session", corners: "Corners", techniques: "Techniques", progress: "Progress" },
+      tabs: { session: "Session", corners: "Corners", techniques: "Techniques", progress: "Progress", advanced: "Advanced" },
       coaching: "Coaching", mapTitle: "The road, corner by corner", thisSession: "This session", allSessions: "All sessions",
       sessionCorners: "Corners in this run", clickCorner: "Click for details",
       cornersTitle: "Corners", sortTrouble: "Most treacherous", sortOrder: "In road order",
@@ -487,13 +534,37 @@ footer { font-size: 12px; color: var(--muted); }
         title: "Replay the corner", hint: "Pick up to 3 passes: they start together at the corner entry (time 0).",
         legendCar: "your car (light window = front, front wheels = your steering)", legendArrow: "Arrow = where the car is actually going. The gap between the arrow and the nose is the slip angle. Outlines = the car a moment earlier.",
         playDrift: "Replay this drift", stripHint: "Click the traces to move the replay there" },
+      advPower: "Power available while drifting", advPowerNote: "Each dot = one drift, placed at its average revs on the engine curve",
+      advGears: "Gear and power band", advGearsNote: "Green: speeds where the engine is in its useful band, gear by gear. Ticks: entry speed of your drifts",
+      advG: "G-force meter", advGNote: "One dot every 0.1 s: lateral and longitudinal acceleration",
+      advStarts: "Drift initiations", advStartsNote: "An attempt = a drift that started or an aborted initiation",
+      advDrifts: "The physics of each drift", advDriftsNote: "Rear wheelspin: how much faster the rear wheels turn than the car moves. Speed: km/h gained (+) or lost (−) per second of drift",
+      adv: { hp: "hp", rpm: "rpm", band: "Useful band (≥ 85% of peak power)",
+        vs: (n, kg, x) => `${n}: ${kg} kg/hp, so ${x}× more power per kilo`,
+        noSpec: "Power curve not found: run the analysis again with the Assetto Corsa folder reachable (set AC_ROOT if needed).",
+        k: { pw: "of peak power, on average while drifting", launch: "of initiations become drifts", lat: "max lateral g", brake: "max braking g", acc: "max acceleration g", drift: "average g while drifting" },
+        power: "Power curve", rpmAxis: "revs (× 1000 rpm)", gearN: g => g === 1 ? "1st" : g === 2 ? "2nd" : g === 3 ? "3rd" : `${g}th`, ofPower: "of peak power",
+        abortedOne: "Aborted initiation", bandLegend: "useful band", legOk: "successful drift", legKo: "failed drift", legAb: "aborted initiation",
+        insBand: (a, b) => `In the useful band: ${a} drifts successful.` + (b ? ` Below it: ${b}.` : ""),
+        insLow: p => `Below the band the engine only gives ${p}% of its power on average: the rear stops spinning and the car grips up.`,
+        insLim: n => `${n} drift${n > 1 ? "s" : ""} on the rev limiter: shift up or enter a little slower.`,
+        gears: "Speed and gear", bandRange: (lo, hi, r0, r1) => `${lo}–${hi} km/h between ${r0} and ${r1} rpm`,
+        insGap: (a, b, g1, g2, r) => `Between ${a} and ${b} km/h no gear is in the band: in ${g1 === 1 ? "1st" : g1 + "th"} you hit the limiter, in ${g2 === 2 ? "2nd" : g2 + "th"} you're under ${r} rpm. In that range, enter a little slower in ${g1 === 1 ? "1st" : g1 + "th"}, or kick the clutch in ${g2 === 2 ? "2nd" : g2 + "th"}.`,
+        insGear: (g, ok, n, pw) => `In ${g === 1 ? "1st" : g === 2 ? "2nd" : g === 3 ? "3rd" : g + "th"}: ${ok}/${n} drifts successful, ${pw}% of peak power on average.`,
+        g: "G-force meter", accel: "acceleration", braking: "braking", left: "← left", right: "right →",
+        startCols: ["Initiation", "Attempts", "Aborted", "Drifts", "Successful", "Success"],
+        insStart: (b, bo, bn, w, wo, wn) => `Your most reliable initiation with this car: ${b} (${bo}/${bn} attempts successful). The hardest: ${w} (${wo}/${wn}).`,
+        insAb: (n, low) => `${n} aborted initiations: the rear started to slide (6 to 12°) then gripped up again.` + (low ? ` ${low} of them under 80% of peak power.` : ""),
+        cols: ["Time", "Corner", "Gear", "Avg revs", "Power", "Rear spin", "Speed km/h/s", "Avg g", "Wheel at lock", "Revs", "End"],
+        rev: { band: "in the band", low: "too low", limiter: "limiter" },
+        insLock: (a, n, b, m) => `Wheel against the lock for more than 0.5 s: ${a}/${n} drifts successful` + (m ? ` (against ${b}/${m} when you only touch it)` : "") + `. At the lock there is no counter-steer left: take angle off before you get there.` },
       up: "uphill", down: "downhill", nf: "en-GB",
     },
   };
   const state = { track: "all", car: "all", session: null, mode: "session", lang: "fr", tab: "session", corner: null, csort: "trouble", cam: "road", strobe: false };
   try { Object.assign(state, JSON.parse(localStorage.getItem("dl-prefs") || "{}")); } catch (e) {}
   const h = location.hash.replace("#", "");
-  if (["session", "corners", "techniques", "progress"].includes(h)) state.tab = h;
+  if (["session", "corners", "techniques", "progress", "advanced"].includes(h)) state.tab = h;
   const L = () => I18N[state.lang] || I18N.fr;
   const fmt = (v, d = 0) => (v === null || v === undefined || Number.isNaN(v)) ? "–" : Number(v).toLocaleString(L().nf, { minimumFractionDigits: d, maximumFractionDigits: d });
   const pct = (v, d = 0) => (v === null || v === undefined) ? "–" : fmt(v, d) + (state.lang === "fr" ? " %" : "%");
@@ -1196,6 +1267,161 @@ footer { font-size: 12px; color: var(--muted); }
     renderCornerReplay(tr, c, att);
   }
 
+  /* ---------- advanced tab: power, gears, g-forces, initiations ---------- */
+  const curveAt = (spec, rpm) => {
+    const p = spec.power; if (rpm <= p[0][0]) return p[0][1];
+    for (let i = 1; i < p.length; i++) if (rpm <= p[i][0]) { const f = (rpm - p[i - 1][0]) / (p[i][0] - p[i - 1][0]); return p[i - 1][1] + f * (p[i][1] - p[i - 1][1]); }
+    return p[p.length - 1][1];
+  };
+  const svgPoint = (svg, e) => { const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; return pt.matrixTransform(svg.getScreenCTM().inverse()); };
+  const ratioTxt = (a, b) => `${a}/${b}`;
+
+  function renderAdvanced() {
+    const A = L().adv, ses = currentSession(), s = history.find(x => x.id === state.session);
+    const ids = ["adv-car", "adv-kpis", "adv-power", "adv-power-legend", "adv-power-ins", "adv-gears", "adv-gears-ins", "adv-gg", "adv-gg-legend", "adv-starts", "adv-starts-ins", "adv-table", "adv-table-ins"];
+    ids.forEach(i => { $(i).innerHTML = ""; });
+    if (!ses || !s) { $("adv-car").innerHTML = `<h2>${L().noSession}</h2>`; return; }
+    if (!s.gforce) { $("adv-car").innerHTML = `<p class="note">${L().rp.rerun}</p>`; return; }
+    const spec = ses.car_spec, dr = ses.drifts, ab = ses.aborted || [];
+
+    // car card + comparison with the other cars recorded
+    let meta = `<h2>${spec ? spec.name : prettyCar(s.car)}</h2>`;
+    if (spec) {
+      meta += `<span>${fmt(spec.bhp)} ${A.hp} · ${spec.weight ? fmt(spec.weight) + " kg" : ""}${spec.kg_per_hp ? " · " + fmt(spec.kg_per_hp, 2) + " kg/" + A.hp : ""}</span>`;
+      if (spec.band) meta += `<span class="mono muted">${A.band}${colon()}${fmt(spec.band[0])}–${fmt(spec.band[1])} ${A.rpm}</span>`;
+      const others = {};
+      Object.values(D.sessions).forEach(o => { if (o.car_spec && o.car_spec.name !== spec.name && o.car_spec.kg_per_hp) others[o.car_spec.name] = o.car_spec; });
+      Object.values(others).forEach(o => { meta += `<span class="note">${A.vs(o.name, fmt(o.kg_per_hp, 2), fmt(spec.kg_per_hp / o.kg_per_hp, 1))}</span>`; });
+    } else meta += `<span class="note">${A.noSpec}</span>`;
+    $("adv-car").innerHTML = meta;
+
+    const g = s.gforce;
+    const kp = [
+      [s.drift_pw !== null && s.drift_pw !== undefined ? fmt(s.drift_pw) : "–", "%", A.k.pw],
+      [fmt(dr.length ? 100 * dr.length / (dr.length + ab.length) : null), "%", A.k.launch],
+      [fmt(g.max_lat, 2), "g", A.k.lat], [fmt(g.max_brake, 2), "g", A.k.brake], [fmt(g.max_acc, 2), "g", A.k.acc], [fmt(g.drift_g, 2), "g", A.k.drift],
+    ];
+    $("adv-kpis").innerHTML = kp.map(([v, u, l]) => `<div class="kpi"><span class="v">${v}<small>${u === "%" ? (state.lang === "fr" ? " %" : "%") : " " + u}</small></span><span class="l">${l}</span></div>`).join("");
+
+    renderPowerChart(spec, dr, ab);
+    renderGears(spec, s, dr, ab);
+    renderGG(ses);
+    renderStarts(dr, ab);
+    renderPhysTable(dr);
+  }
+
+  function renderPowerChart(spec, dr, ab) {
+    const A = L().adv, box = $("adv-power");
+    if (!spec) { box.innerHTML = `<p class="note">${A.noSpec}</p>`; return; }
+    const W = 560, H = 300, l = 46, r = 14, t = 14, b = 34;
+    const rmax = Math.ceil((spec.power[spec.power.length - 1][0] + 300) / 1000) * 1000, hmax = Math.ceil(spec.peak_hp * 1.12 / 50) * 50;
+    const X = v => l + v / rmax * (W - l - r), Y = v => t + (1 - v / hmax) * (H - t - b);
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": A.power }, box);
+    if (spec.band) el("rect", { x: X(spec.band[0]), width: X(spec.band[1]) - X(spec.band[0]), y: t, height: H - t - b, fill: "var(--good-line)", "fill-opacity": .1 }, svg);
+    for (let v = 0; v <= hmax; v += hmax > 400 ? 100 : 50) { el("line", { x1: l, x2: W - r, y1: Y(v), y2: Y(v), stroke: v ? "var(--hair)" : "var(--axis)" }, svg); txt(svg, l - 6, Y(v) + 4, fmt(v), { "text-anchor": "end" }); }
+    for (let v = 0; v <= rmax; v += 1000) txt(svg, X(v), H - b + 16, fmt(v / 1000), { "text-anchor": "middle" });
+    txt(svg, W - r, H - 4, A.rpmAxis, { "text-anchor": "end" });
+    txt(svg, l + 6, t + 10, A.hp, { "text-anchor": "start" });
+    el("polyline", { points: spec.power.map(p => X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1)).join(" "), fill: "none", stroke: "var(--accent)", "stroke-width": 2.2, "stroke-linejoin": "round" }, svg);
+    const dot = (rpm, filled, color, html) => {
+      const gg = el("g", { style: "cursor:default" }, svg), cx = X(Math.min(rpm, rmax)), cy = Y(curveAt(spec, rpm));
+      el("circle", { cx, cy, r: 5.5, fill: filled ? color : "var(--surface)", stroke: filled ? "var(--surface)" : color, "stroke-width": filled ? 1.5 : 2 }, gg);
+      el("circle", { cx, cy, r: 10, fill: "transparent" }, gg);
+      gg.addEventListener("mousemove", e => showTip(html, e)); gg.addEventListener("mouseleave", hideTip);
+    };
+    ab.forEach(a => dot(a.rpm, false, "var(--warn)", `<b>${A.abortedOne}</b> · ${L().tech[a.technique]}<br>${A.gearN(a.gear)} · ${fmt(a.speed)} km/h · ${fmt(a.rpm)} ${A.rpm} · ${pct(a.pw)}`));
+    dr.filter(d => d.rpm).forEach(d => dot(d.rpm, true, d.success ? "var(--good-line)" : "var(--crit)", `<b>${d.corner ? L().C + d.corner : fmt(d.t0, 0) + " s"}</b> · ${L().tech[d.technique]}<br>${A.gearN(d.gear)} · ${fmt(d.rpm)} ${A.rpm} · ${pct(d.pw)} ${A.ofPower}<br>${L().outcome[d.outcome]}`));
+    $("adv-power-legend").innerHTML = `<span class="ramp"><i style="background:var(--good-line);opacity:.35;height:10px"></i>${A.bandLegend}</span><span class="sym"><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="var(--good-line)"/></svg>${A.legOk}</span><span class="sym"><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="var(--crit)"/></svg>${A.legKo}</span><span class="sym"><svg width="14" height="14"><circle cx="7" cy="7" r="4.5" fill="none" stroke="var(--warn)" stroke-width="2"/></svg>${A.legAb}</span>`;
+    const ins = [], by = k => dr.filter(d => d.rev === k), ok = a => a.filter(d => d.success).length;
+    const inB = by("band"), low = by("low"), lim = by("limiter");
+    if (inB.length) ins.push(A.insBand(ratioTxt(ok(inB), inB.length), low.length ? ratioTxt(ok(low), low.length) : null));
+    if (low.length) ins.push(A.insLow(fmt(low.reduce((a, d) => a + d.pw, 0) / low.length)));
+    if (lim.length) ins.push(A.insLim(lim.length));
+    $("adv-power-ins").innerHTML = ins.map(i => `<li><span>${i}</span></li>`).join("");
+  }
+
+  function renderGears(spec, s, dr, ab) {
+    const A = L().adv, box = $("adv-gears"), gears = Object.entries(s.gears || {}).map(([k, v]) => [+k, v]).filter(x => x[0] <= 4).sort((a, b) => a[0] - b[0]);
+    if (!spec || !spec.band || !gears.length) { box.innerHTML = `<p class="note">${A.noSpec}</p>`; return; }
+    const top = spec.power[spec.power.length - 1][0], vmax = Math.ceil(Math.max(...gears.map(g => g[1] * top / 1000), ...dr.map(d => d.entry)) / 20) * 20;
+    const W = 560, l = 56, r = 14, rowH = 46, t = 10, H = t + gears.length * rowH + 30;
+    const X = v => l + v / vmax * (W - l - r);
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": A.gears }, box);
+    for (let v = 0; v <= vmax; v += 20) { el("line", { x1: X(v), x2: X(v), y1: t, y2: H - 26, stroke: "var(--hair)" }, svg); txt(svg, X(v), H - 10, fmt(v), { "text-anchor": "middle" }); }
+    txt(svg, W - r, H - 10 + 0, "", {});
+    const bands = [];
+    gears.forEach(([gr, k], i) => {
+      const y = t + i * rowH + rowH / 2;
+      txt(svg, l - 10, y + 4, A.gearN(gr), { "text-anchor": "end", fill: "var(--ink-2)", "font-family": "IBM Plex Sans, sans-serif", "font-size": 12.5 });
+      const lo = spec.band[0] * k / 1000, hi = spec.band[1] * k / 1000, all = top * k / 1000;
+      bands.push([gr, lo, hi]);
+      el("rect", { x: X(2000 * k / 1000), width: X(all) - X(2000 * k / 1000), y: y - 6, height: 12, rx: 3, fill: "var(--hair)" }, svg);
+      const band = el("rect", { x: X(lo), width: X(hi) - X(lo), y: y - 6, height: 12, rx: 3, fill: "var(--good-line)", "fill-opacity": .55 }, svg);
+      band.addEventListener("mousemove", e => showTip(`<b>${A.gearN(gr)}</b><br>${A.bandRange(fmt(lo), fmt(hi), fmt(spec.band[0]), fmt(spec.band[1]))}`, e)); band.addEventListener("mouseleave", hideTip);
+      const tick = (v, color, filled, html) => {
+        const gg = el("g", {}, svg);
+        el("rect", { x: X(v) - 2, y: y - 14, width: 4, height: 28, rx: 1.5, fill: filled ? color : "var(--surface)", stroke: color, "stroke-width": filled ? 0 : 1.5 }, gg);
+        el("rect", { x: X(v) - 6, y: y - 16, width: 12, height: 32, fill: "transparent" }, gg);
+        gg.addEventListener("mousemove", e => showTip(html, e)); gg.addEventListener("mouseleave", hideTip);
+      };
+      ab.filter(a => a.gear === gr).forEach(a => tick(a.speed, "var(--warn)", false, `<b>${A.abortedOne}</b> · ${L().tech[a.technique]}<br>${fmt(a.speed)} km/h · ${fmt(a.rpm)} ${A.rpm}`));
+      dr.filter(d => d.gear === gr).forEach(d => tick(d.entry, d.success ? "var(--good-line)" : "var(--crit)", true, `<b>${d.corner ? L().C + d.corner : fmt(d.t0, 0) + " s"}</b> · ${L().tech[d.technique]}<br>${fmt(d.entry)} km/h · ${fmt(d.rpm)} ${A.rpm}<br>${L().outcome[d.outcome]}`));
+    });
+    const ins = [];
+    const fastest = Math.max(0, ...dr.map(d => d.entry), ...ab.map(a => a.speed));
+    for (let i = 0; i < bands.length - 1; i++) if (bands[i][2] < bands[i + 1][1] - 3 && bands[i][2] < fastest + 10) ins.push(A.insGap(fmt(bands[i][2]), fmt(bands[i + 1][1]), bands[i][0], bands[i + 1][0], fmt(spec.band[0])));
+    gears.forEach(([gr]) => { const x = dr.filter(d => d.gear === gr); if (x.length >= 2) ins.push(A.insGear(gr, x.filter(d => d.success).length, x.length, fmt(x.reduce((a, d) => a + (d.pw || 0), 0) / x.length))); });
+    $("adv-gears-ins").innerHTML = ins.map(i => `<li><span>${i}</span></li>`).join("");
+  }
+
+  function renderGG(ses) {
+    const A = L().adv, box = $("adv-gg"), t = ses.trace;
+    if (!t.glat) { box.innerHTML = `<p class="note">${L().rp.rerun}</p>`; return; }
+    // scale from the 99.5th percentile: wall impacts spike to tens of g and would squash everything
+    const mags = t.glat.map((v, i) => Math.max(Math.abs(v), Math.abs(t.glon[i]))).sort((a, b) => a - b);
+    const S = 340, c = S / 2, lim = Math.min(2, Math.max(1.5, Math.ceil(mags[Math.floor(mags.length * .995)] * 2) / 2)), k = (c - 22) / lim;
+    const svg = el("svg", { viewBox: `0 0 ${S} ${S}`, role: "img", "aria-label": A.g, style: "max-width:420px;margin:0 auto" }, box);
+    for (let v = .5; v <= lim + 1e-6; v += .5) { el("circle", { cx: c, cy: c, r: v * k, fill: "none", stroke: "var(--hair)" }, svg); txt(svg, c + v * k * .707 + 3, c - v * k * .707 - 3, fmt(v, 1) + " g", { "font-size": 10 }); }
+    el("line", { x1: 8, x2: S - 8, y1: c, y2: c, stroke: "var(--axis)" }, svg); el("line", { y1: 8, y2: S - 8, x1: c, x2: c, stroke: "var(--axis)" }, svg);
+    txt(svg, c, 14, A.accel, { "text-anchor": "middle", fill: "var(--ink-2)" }); txt(svg, c, S - 6, A.braking, { "text-anchor": "middle", fill: "var(--ink-2)" });
+    txt(svg, 10, c - 6, A.left, { fill: "var(--ink-2)" }); txt(svg, S - 10, c - 6, A.right, { "text-anchor": "end", fill: "var(--ink-2)" });
+    const layers = BINS.map(() => []);
+    for (let i = 0; i < t.glat.length; i++) { if (t.speed[i] < 10 || Math.abs(t.glat[i]) > lim || Math.abs(t.glon[i]) > lim) continue; layers[binOf(t.angle[i])].push(`M${(c - t.glat[i] * k).toFixed(1)} ${(c - t.glon[i] * k).toFixed(1)}h0`); }
+    layers.forEach((d, b) => { if (d.length) el("path", { d: d.join(""), stroke: `var(${BINS[b][2]})`, "stroke-width": b ? 3.4 : 2.6, "stroke-linecap": "round", "stroke-opacity": b ? .75 : .45 }, svg); });
+    $("adv-gg-legend").innerHTML = `<span class="eyebrow">${L().angle}</span>` + BINS.map((b, i) => `<span class="ramp"><i style="background:var(${b[2]})"></i>${binLabel(i)}</span>`).join("");
+  }
+
+  function renderStarts(dr, ab) {
+    const A = L().adv, rows = {};
+    dr.forEach(d => { const r = rows[d.technique] = rows[d.technique] || { n: 0, ok: 0, ab: 0 }; r.n++; r.ok += d.success; });
+    ab.forEach(a => { const r = rows[a.technique] = rows[a.technique] || { n: 0, ok: 0, ab: 0 }; r.ab++; });
+    const list = TECH_ORDER.filter(k => rows[k]).map(k => [k, rows[k]]);
+    $("adv-starts").innerHTML = `<thead><tr>${A.startCols.map((h, i) => `<th${i ? "" : ' class="l"'}>${h}</th>`).join("")}</tr></thead><tbody>` + list.map(([k, r]) => {
+      const tries = r.n + r.ab;
+      return `<tr><td class="l"><span class="status"><span class="dot" style="background:${tcol(k)}"></span>${L().tech[k]}</span></td><td>${tries}</td><td>${r.ab}</td><td>${r.n}</td><td>${r.ok}</td><td><b>${pct(100 * r.ok / tries)}</b></td></tr>`;
+    }).join("") + "</tbody>";
+    const scored = list.filter(([, r]) => r.n + r.ab >= 3).map(([k, r]) => [k, r.ok / (r.n + r.ab), r]);
+    const ins = [];
+    if (scored.length >= 2) {
+      scored.sort((a, b) => b[1] - a[1]);
+      const [bk, bv, br] = scored[0], [wk, wv, wr] = scored[scored.length - 1];
+      if (bv > wv) ins.push(A.insStart(L().tech[bk], br.ok, br.n + br.ab, L().tech[wk], wr.ok, wr.n + wr.ab));
+    }
+    const abLow = ab.filter(a => a.pw !== null && a.pw < 80).length;
+    if (ab.length) ins.push(A.insAb(ab.length, abLow));
+    $("adv-starts-ins").innerHTML = ins.map(i => `<li><span>${i}</span></li>`).join("");
+  }
+
+  function renderPhysTable(dr) {
+    const A = L().adv;
+    const revChip = v => v ? `<span class="status"><span class="dot" style="background:${{ band: "var(--good-line)", low: "var(--serious)", limiter: "var(--warn)" }[v]}"></span>${A.rev[v]}</span>` : "–";
+    $("adv-table").innerHTML = `<thead><tr>${A.cols.map((h, i) => `<th${i === 9 || i === 10 ? ' class="l"' : ""}>${h}</th>`).join("")}</tr></thead><tbody>` + dr.map(d =>
+      `<tr><td class="mono">${fmt(d.t0, 1)} s</td><td>${d.corner ? L().C + d.corner : "–"}</td><td>${d.gear}</td><td>${fmt(d.rpm)}</td><td>${d.pw !== null && d.pw !== undefined ? pct(d.pw) : "–"}</td><td>${d.spin !== undefined ? pct(d.spin) : "–"}</td><td>${d.decel !== undefined ? (d.decel > 0 ? "−" : "+") + fmt(Math.abs(d.decel), 1) : "–"}</td><td>${d.g !== undefined ? fmt(d.g, 2) : "–"}</td><td>${d.at_lock !== undefined ? (d.at_lock > 0 ? fmt(d.at_lock, 1) + " s" : "–") : "–"}</td><td class="l">${revChip(d.rev)}</td><td class="l">${outcomeCell(d.outcome, d.reasons)}</td></tr>`
+    ).join("") + "</tbody>";
+    const long = dr.filter(d => d.at_lock >= .5), brief = dr.filter(d => d.at_lock > 0 && d.at_lock < .5);
+    $("adv-table-ins").innerHTML = long.length ? `<li><span>${A.insLock(long.filter(d => d.success).length, long.length, brief.filter(d => d.success).length, brief.length)}</span></li>` : "";
+  }
+
   /* ---------- techniques tab ---------- */
   function filteredAttempts() {
     const ids = sessIds(), out = [];
@@ -1300,6 +1526,7 @@ footer { font-size: 12px; color: var(--muted); }
     if (state.tab === "session") { renderBand(); renderCoach(); renderMap(); renderSessionCorners(); renderThrottle(); renderStrip(); renderDrifts(); if (sessionPlayer) sessionPlayer.redraw(); }
     if (state.tab === "corners") { renderCornerList(); renderCornerDetail(); }
     if (state.tab === "techniques") renderTechniques();
+    if (state.tab === "advanced") renderAdvanced();
     if (state.tab === "progress") { renderEvo(); aggTable("by-car", "car", prettyCar); aggTable("by-track", "track", prettyTrack); }
   }
   document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => { state.tab = b.dataset.tab; save(); renderAll(); }));
