@@ -445,6 +445,8 @@ footer { font-size: 12px; color: var(--muted); }
         tre: (list) => `Virages traîtres en ce moment : ${list}.`,
       },
       replay: "▶ Replay",
+      contactAt: "contact", contact: { front_left: "avant gauche", front_right: "avant droit", rear_left: "arrière gauche", rear_right: "arrière droit" },
+      noWall: "Aucun mur à cet endroit : caniveau, bordure ou talus que la ligne de la piste compte comme route.", impactNoWall: "choc hors mur (caniveau, bordure)",
       rp: { play: "Lecture", pause: "Pause", restart: "Revenir au début", time: "Position dans le replay", speed: "Vitesse de lecture", prev: "Glisse précédente", next: "Glisse suivante",
         camera: "Caméra", road: "Suit la route", north: "Carte fixe", strobe: "Silhouettes", strobeHint: "Dessine la voiture toutes les 0,3 s le long des passages choisis",
         thr: "gaz", brk: "frein", clu: "embray.", steer: "volant", hb: "frein à main", gearShort: "rapport", angleShort: "angle", between: "entre deux virages",
@@ -542,6 +544,8 @@ footer { font-size: 12px; color: var(--muted); }
         tre: (list) => `Treacherous corners right now: ${list}.`,
       },
       replay: "▶ Replay",
+      contactAt: "contact", contact: { front_left: "front left", front_right: "front right", rear_left: "rear left", rear_right: "rear right" },
+      noWall: "No wall here: a gutter, kerb or bank that the track's line counts as road.", impactNoWall: "impact off the wall (gutter, kerb)",
       rp: { play: "Play", pause: "Pause", restart: "Back to start", time: "Replay position", speed: "Playback speed", prev: "Previous drift", next: "Next drift",
         camera: "Camera", road: "Follow the road", north: "Fixed map", strobe: "Ghosts", strobeHint: "Draws the car every 0.3 s along the chosen passes",
         thr: "throttle", brk: "brake", clu: "clutch", steer: "wheel", hb: "handbrake", gearShort: "gear", angleShort: "angle", between: "between corners",
@@ -718,17 +722,21 @@ footer { font-size: 12px; color: var(--muted); }
   const BINS = [[0, 12, "--a0"], [12, 25, "--a1"], [25, 40, "--a2"], [40, 60, "--a3"], [60, 999, "--a4"]];
   const binLabel = i => [L().grip, "12–25°", "25–40°", "40–60°", L().deg60][i];
   const binOf = a => BINS.findIndex(b => a >= b[0] && a < b[1]);
-  function drawSymbol(g, type, x, y) {
+  // impacts are drawn where the body touched (contact point), not at the car's centre
+  const ex = e => e.cx ?? e.x, ez = e => e.cz ?? e.z;
+  function drawSymbol(g, type, x, y, e) {
     const c = STATUS[type];
+    if (type === "impact" && e && e.no_wall) { el("circle", { cx: x, cy: y, r: 5.5, fill: "var(--surface)", stroke: c, "stroke-width": 2.5, "stroke-dasharray": "3 2" }, g); return; }
     if (type === "impact") el("circle", { cx: x, cy: y, r: 6.5, fill: c, stroke: "var(--surface)", "stroke-width": 2 }, g);
     else if (type === "spin") el("path", { d: `M${x} ${y - 7}L${x + 7} ${y}L${x} ${y + 7}L${x - 7} ${y}Z`, fill: c, stroke: "var(--surface)", "stroke-width": 2 }, g);
     else if (type === "lock") el("path", { d: `M${x} ${y - 6}L${x + 6} ${y + 5}L${x - 6} ${y + 5}Z`, fill: c, stroke: "var(--surface)", "stroke-width": 1.5 }, g);
     else el("circle", { cx: x, cy: y, r: 4, fill: c, stroke: "var(--surface)", "stroke-width": 1.5 }, g);
   }
-  function symSvg(type) { const s = document.createElementNS(NS, "svg"); s.setAttribute("width", 16); s.setAttribute("height", 16); s.setAttribute("viewBox", "0 0 16 16"); drawSymbol(s, type, 8, 8); return s.outerHTML; }
+  function symSvg(type, e) { const s = document.createElementNS(NS, "svg"); s.setAttribute("width", 16); s.setAttribute("height", 16); s.setAttribute("viewBox", "0 0 16 16"); drawSymbol(s, type, 8, 8, e); return s.outerHTML; }
   function eventTip(e) {
     const c = e.corner ? ` · ${L().C}${e.corner}` : "";
-    if (e.type === "impact") return `<b>${L().evImpact(e.kind)}</b>${c}<br>${fmt(e.t, 1)} s · ${L().arriving} ${fmt(e.speed)} km/h · ${fmt(e.loss)} km/h ${L().lost}`;
+    if (e.type === "impact") return `<b>${L().evImpact(e.kind)}</b>${c}<br>${fmt(e.t, 1)} s · ${L().arriving} ${fmt(e.speed)} km/h · ${fmt(e.loss)} km/h ${L().lost}` +
+      (e.contact ? `<br>${L().contactAt}${colon()}${L().contact[e.contact]}` : "") + (e.no_wall ? `<br>${L().noWall}` : "");
     if (e.type === "spin") return `<b>${L().spin}</b>${c}<br>${fmt(e.t, 1)} s · ${fmt(e.angle)}° · ${fmt(e.speed)} km/h`;
     if (e.type === "lock") return `<b>${e.cause === "handbrake" ? L().tech.handbrake : L().lock}</b>${c}<br>${fmt(e.t, 1)} s · ${L().revs} ${fmt(e.rpm)} rpm · ${fmt(e.speed)} km/h`;
     return `<b>${L().lift}</b>${c}<br>${fmt(e.t, 1)} s · ${fmt(e.duration, 2)} ${L().footOff} · ${fmt(e.angle_before)}° → ${fmt(e.angle_after)}°`;
@@ -778,13 +786,14 @@ footer { font-size: 12px; color: var(--muted); }
     if (state.mode === "session") {
       const order = { lift: 0, lock: 1, spin: 2, impact: 3 }, eg = el("g", {}, svg);
       ses.events.slice().sort((a, b) => order[a.type] - order[b.type]).forEach(e => {
-        const [x, y] = P(e.x, e.z), sg = el("g", {}, eg);
-        drawSymbol(sg, e.type, x, y);
+        const [x, y] = P(ex(e), ez(e)), sg = el("g", {}, eg);
+        drawSymbol(sg, e.type, x, y, e);
         el("circle", { cx: x, cy: y, r: 11, fill: "transparent" }, sg);
         sg.addEventListener("mousemove", ev => showTip(eventTip(e), ev)); sg.addEventListener("mouseleave", hideTip);
       });
       $("map-legend").innerHTML = `<span class="eyebrow">${L().angle}</span>` + BINS.map((b, i) => `<span class="ramp"><i style="background:var(${b[2]})"></i>${binLabel(i)}</span>`).join("") +
-        ["impact", "spin", "lift", "lock"].map(t => `<span class="sym">${symSvg(t)}${L()[t]}</span>`).join("");
+        ["impact", "spin", "lift", "lock"].map(t => `<span class="sym">${symSvg(t)}${L()[t]}</span>`).join("") +
+        (ses.events.some(e => e.no_wall) ? `<span class="sym">${symSvg("impact", { no_wall: true })}${L().impactNoWall}</span>` : "");
     } else $("map-legend").innerHTML = `<span>${L().cumulLegend}</span>`;
   }
 
@@ -1138,7 +1147,7 @@ footer { font-size: 12px; color: var(--muted); }
       txt(g, 0, 4.5, L().C + c.id, { "text-anchor": "middle", "font-family": "Saira Condensed, Arial Narrow, sans-serif", "font-size": 11.5, "font-weight": 600, fill: "var(--ink)" });
       return { g, c };
     });
-    const evs = ses.events.filter(e => e.type !== "lift").map(e => { const g = el("g", {}, world); drawSymbol(g, e.type, 0, 0); return { g, e }; });
+    const evs = ses.events.filter(e => e.type !== "lift").map(e => { const g = el("g", {}, world); drawSymbol(g, e.type, 0, 0, e); return { g, e }; });
     const ghosts = [1, 2, 3, 4, 5].map(() => makeCar(world, "var(--p1)", { outline: true }));
     const car = makeCar(world, "var(--p1)", { wheels: true, arrow: true });
 
@@ -1171,7 +1180,7 @@ footer { font-size: 12px; color: var(--muted); }
       }
       world.setAttribute("transform", `translate(${W / 2} ${cy}) rotate(${rot.toFixed(2)}) scale(${K}) translate(${(-sm.x).toFixed(2)} ${(-sm.z).toFixed(2)})`);
       badges.forEach(b => b.g.setAttribute("transform", `translate(${b.c.x} ${b.c.z}) rotate(${(-rot).toFixed(2)}) scale(${1 / K})`));
-      evs.forEach(o => o.g.setAttribute("transform", `translate(${o.e.x} ${o.e.z}) rotate(${(-rot).toFixed(2)}) scale(${1 / K})`));
+      evs.forEach(o => o.g.setAttribute("transform", `translate(${ex(o.e)} ${ez(o.e)}) rotate(${(-rot).toFixed(2)}) scale(${1 / K})`));
       ghosts.forEach((g, k) => {
         const tt = tau - .22 * (k + 1), s2 = sampleAt(t, tt);
         if (tt < 0 || t.seg[s2.i] !== t.seg[sm.i] || sm.speed < 8) g.hide(); else g.set(s2, .55 - k * .09);
@@ -1223,7 +1232,7 @@ footer { font-size: 12px; color: var(--muted); }
     stopAll();
     box.innerHTML = ""; chips.innerHTML = "";
     const { passes, lo, hi } = cornerPasses(tr, c, att), valid = passes.filter(Boolean);
-    $("corner-legend").innerHTML = carLegend() + `<span class="ramp"><i style="background:var(--good-line)"></i>${L().cd.mapLegendOk}</span><span class="ramp"><i style="background:var(--crit)"></i>${L().cd.mapLegendKo}</span><span class="sym">${symSvg("impact")}${L().impact}</span>`;
+    $("corner-legend").innerHTML = carLegend() + `<span class="ramp"><i style="background:var(--good-line)"></i>${L().cd.mapLegendOk}</span><span class="ramp"><i style="background:var(--crit)"></i>${L().cd.mapLegendKo}</span><span class="sym">${symSvg("impact")}${L().impact}</span><span class="sym">${symSvg("impact", { no_wall: true })}${L().impactNoWall}</span>`;
     if (!valid.length) return;
     if (!valid.every(p => hasReplay(p.t))) { box.innerHTML = `<p class="note">${R.rerun}</p>`; return; }
     let sel = (cornerSel[c.id] || []).filter(k => valid.some(p => passKey(p.a) === k));
@@ -1269,7 +1278,9 @@ footer { font-size: 12px; color: var(--muted); }
     const cs = Math.min(1.5, Math.max(1, 20 / (4.5 * k)));
     if (state.strobe) chosen.forEach(p => { for (let tt = p.t.t[p.i0]; tt <= p.t.t[p.i1]; tt += .3) makeCar(world, colorOf(p), { outline: true, scale: cs }).set(sampleAt(p.t, tt), .75); });
     valid.forEach(p => D.sessions[p.a.sid].events.filter(e => e.type === "impact" && e.t >= p.t.t[p.i0] - .3 && e.t <= p.t.t[p.i1] + .8).forEach(e => {
-      drawSymbol(el("g", { transform: `translate(${e.x} ${e.z}) scale(${(1 / k).toFixed(4)})` }, world), "impact", 0, 0);
+      const sg = el("g", { transform: `translate(${ex(e)} ${ez(e)}) scale(${(1 / k).toFixed(4)})`, style: "cursor:default" }, world);
+      drawSymbol(sg, "impact", 0, 0, e); el("circle", { r: 10, fill: "transparent" }, sg);
+      sg.addEventListener("mousemove", ev => showTip(eventTip(e), ev)); sg.addEventListener("mouseleave", hideTip);
     }));
     const cars = chosen.map(p => makeCar(world, colorOf(p), { wheels: true, arrow: true, scale: cs }));
     const hud = makeHud(box.querySelector(".hud"), chosen.map(p => ({ color: colorOf(p), label: `${labelOf(p)} → ${L().outcome[p.a.outcome]}` })));

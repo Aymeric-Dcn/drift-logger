@@ -166,3 +166,43 @@ def downshift_lock_mask(df, events):
         if e["lock"]:
             m |= (t >= e["t"] - 0.2) & (t <= e["t"] + 0.8)
     return m
+
+
+CORNERS = {"front_left": (2.25, -0.9), "front_right": (2.25, 0.9), "rear_left": (-2.25, -0.9), "rear_right": (-2.25, 0.9)}
+
+
+def _seg_dist(p, ax, az, bx, bz):
+    """Distance from point p to every segment (a_i, b_i)."""
+    dx, dz = bx - ax, bz - az
+    L2 = np.maximum(dx * dx + dz * dz, 1e-9)
+    u = np.clip(((p[0] - ax) * dx + (p[1] - az) * dz) / L2, 0, 1)
+    return np.hypot(ax + u * dx - p[0], az + u * dz - p[1])
+
+
+def contact_points(df, events, edges):
+    """Where the car actually touched: the body corner closest to a road edge at the impact.
+    The impact point used to be the car's centre, which in a drift can be 2-3 m from the wall.
+    A contact far from any edge means something the AI line counts as road (gutter, kerb)."""
+    if not edges:
+        return
+    segs = []
+    for side in ("l", "r"):
+        x, z = np.array(edges[side]["x"]), np.array(edges[side]["z"])
+        segs.append((x[:-1], z[:-1], x[1:], z[1:]))
+    t = df.time_s.values
+    for e in events:
+        if e["type"] != "impact":
+            continue
+        i = max(0, int(np.searchsorted(t, e["t"] - 0.08)))  # just before the hit
+        cx, cz, h = df.world_x.iat[i], df.world_z.iat[i], np.radians(df.heading.iat[i])
+        fwd, right = np.array([np.sin(h), np.cos(h)]), np.array([np.cos(h), -np.sin(h)])
+        best = None
+        for name, (a, b) in CORNERS.items():
+            p = np.array([cx, cz]) + a * fwd + b * right
+            d = min(float(_seg_dist(p, *s).min()) for s in segs)
+            if best is None or d < best[0]:
+                best = (d, name, p)
+        e["cx"], e["cz"] = round(float(best[2][0]), 1), round(float(best[2][1]), 1)
+        e["contact"] = best[1]
+        e["wall_gap"] = round(best[0], 1)
+        e["no_wall"] = best[0] > 2.0

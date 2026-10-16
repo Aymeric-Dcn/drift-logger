@@ -434,6 +434,7 @@ def analyse_file(path):
     cs = countersteer_delays(df)
     dr = technique.analyse_drifts(df, find_drifts(df, stabs), ev, cs)
     physics.drift_physics(df, dr, spec)
+    physics.contact_points(df, ev, track_edges.edges(meta.get("track", "")))
     ab = physics.aborted(df, dr, spec)
     summary = summarize(sid, meta, df, ev, dr, cs, stabs)
     summary.update({"aborted": len(ab), "gears": gears, "gforce": physics.g_stats(df)})
