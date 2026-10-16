@@ -10,6 +10,7 @@ The Assetto Corsa folder is found from the AC_ROOT environment variable or the
 usual Steam locations. Without it (or for a layout with no AI line) the
 dashboard falls back to a band drawn around the driven line.
 """
+import hashlib
 import os
 import struct
 
@@ -77,3 +78,20 @@ def edges(track):
     r1 = lambda v: np.round(v[idx], 1).tolist()
     return {"l": {"x": r1(x + left * nx), "z": r1(z + left * nz)},
             "r": {"x": r1(x - right * nx), "z": r1(z - right * nz)}}
+
+
+def road_key(track):
+    """Same road, different track folder (e.g. a wet version of the same map): identical AI line.
+    Returns a short fingerprint of the AI line, or the track name when it can't be read."""
+    path = find_ai(track)
+    if not path:
+        return track
+    try:
+        data = read_ai(path)
+    except (OSError, struct.error, ValueError):
+        return track
+    if data is None:
+        return track
+    x, z = data[0], data[1]
+    pts = np.round(np.c_[x, z], 1).tobytes()
+    return "road_" + hashlib.md5(pts).hexdigest()[:10]

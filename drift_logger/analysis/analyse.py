@@ -358,10 +358,12 @@ def corner_of(corners, pos):
     return None
 
 
-def update_track(track, sessions):
-    """Corners come from the session covering the most road; stats from all sessions."""
+def update_track(track, sessions, road_sessions=None):
+    """Corners come from the session covering the most road, among every session on the
+    same road (a wet and a dry version of a map share their corner numbers); stats come
+    from this track's sessions only."""
     os.makedirs(TRACK_DIR, exist_ok=True)
-    ref = max(sessions, key=lambda s: s["summary"]["track_cover"])
+    ref = max(road_sessions or sessions, key=lambda s: s["summary"]["track_cover"])
     corners = [dict(c) for c in ref["corners"]]
     for c in corners:
         c.update({"passes": 0, "drifts": 0, "impacts": 0, "spins": 0, "lifts": 0, "locks": 0,
@@ -474,7 +476,11 @@ def main():
     by_track = {}
     for s in sessions:
         by_track.setdefault(s["summary"]["track"], []).append(s)
-    tracks = {t: update_track(t, ss) for t, ss in by_track.items()}
+    road = {t: track_edges.road_key(t) for t in by_track}
+    by_road = {}
+    for t, ss in by_track.items():
+        by_road.setdefault(road[t], []).extend(ss)
+    tracks = {t: update_track(t, ss, by_road[road[t]]) for t, ss in by_track.items()}
     for s in sessions:  # tag every event and drift with its corner
         cs = tracks[s["summary"]["track"]]["corners"]
         for e in s["events"]:
