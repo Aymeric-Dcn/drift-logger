@@ -7,7 +7,7 @@ Everything works on the full-rate session dataframe prepared by analyse.py.
 import numpy as np
 
 # initiation techniques, in priority order when several are detected
-TECHNIQUES = ["transition", "handbrake", "feint", "clutch", "brake", "lift", "power", "other"]
+TECHNIQUES = ["transition", "handbrake", "downshift", "feint", "clutch", "brake", "lift", "power", "other"]
 
 LIGHT_TOUCH_LOSS = 10.0   # km/h lost at the contact: below this, a touch on exit is fine
 OVER_ANGLE = 65.0         # deg: too much angle, the drift bogs down
@@ -26,7 +26,10 @@ def handbrake_mask(df):
         return df.handbrake > 0.3
     rear = df[["slip_ratio_rl", "slip_ratio_rr"]].mean(axis=1)
     front = df[["slip_ratio_fl", "slip_ratio_fr"]].mean(axis=1)
-    return (rear < -0.4) & (front > -0.15) & (df.brake < 0.15) & (df.speed_kmh > 15)
+    m = (rear < -0.4) & (front > -0.15) & (df.brake < 0.15) & (df.speed_kmh > 15)
+    if "ds_lock" in df:  # a locking downshift does the same to the rear wheels
+        m &= ~df.ds_lock
+    return m
 
 
 def handbrake(df, t0):
@@ -47,6 +50,7 @@ def initiation(df, d, prev):
     away = [i for i in range(len(sd)) if calm[i] and sd[i] < -40]
     flags["feint"] = bool(away and (sd[away[0]:] > 30).any() and not flags["transition"])
     flags["handbrake"] = handbrake(df, t0)
+    flags["downshift"] = bool("ds_lock" in df and window(df, t0 - 1.5, t0 + 0.2).ds_lock.any())
     flags["clutch"] = bool((window(df, t0 - 1.0, t0 + 0.3).clutch < 0.5).any())
     brk = window(df, t0 - 1.2, t0 + 0.2)
     flags["brake"] = bool(brk.brake.max() > 0.25) if len(brk) else False

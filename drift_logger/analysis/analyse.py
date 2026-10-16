@@ -408,6 +408,14 @@ def update_track(track, sessions):
     return data
 
 
+def next_corner(corners, pos):
+    """The corner a braking zone or an initiation leads into: the one containing pos, or the next one."""
+    for c in corners:
+        if pos <= c["pos1"]:
+            return c["id"] if pos >= c["pos0"] - 0.012 else None
+    return None
+
+
 def safe(s):
     return "".join(c if c.isalnum() or c in "-_" else "_" for c in s)
 
@@ -415,19 +423,23 @@ def safe(s):
 def analyse_file(path):
     df, meta = load_csv(path)
     df = prepare(df)
+    spec = car_specs.load(meta.get("car", ""))
+    gears = physics.gear_speeds(df)
+    ds = physics.downshifts(df, gears, spec)
+    df["ds_lock"] = physics.downshift_lock_mask(df, ds)
+    df["handbrake_on"] = technique.handbrake_mask(df)
     sid = os.path.basename(path)[:15]
     ev = detect_events(df)
     stabs = throttle_stabs(df)
     cs = countersteer_delays(df)
     dr = technique.analyse_drifts(df, find_drifts(df, stabs), ev, cs)
-    spec = car_specs.load(meta.get("car", ""))
     physics.drift_physics(df, dr, spec)
     ab = physics.aborted(df, dr, spec)
     summary = summarize(sid, meta, df, ev, dr, cs, stabs)
-    summary.update({"aborted": len(ab), "gears": physics.gear_speeds(df), "gforce": physics.g_stats(df)})
+    summary.update({"aborted": len(ab), "gears": gears, "gforce": physics.g_stats(df)})
     pw = [d["pw"] for d in dr if d.get("pw") is not None]
     summary["drift_pw"] = round(float(np.mean(pw)), 0) if pw else None
-    return {"summary": summary, "events": ev, "drifts": dr, "aborted": ab, "car_spec": spec,
+    return {"summary": summary, "events": ev, "drifts": dr, "aborted": ab, "downshifts": ds, "car_spec": spec,
             "countersteer": cs, "stabs": stabs, "corners": detect_corners(df),
             "trace": downsample(df), "file": os.path.basename(path)}
 
@@ -468,6 +480,8 @@ def main():
             e["corner"] = corner_of(cs, e["pos"])
         for d in s["drifts"]:
             d["corner"] = corner_of(cs, (d["pos0"] + d["pos1"]) / 2)
+        for e in s.get("downshifts", []) + s.get("aborted", []):
+            e["corner"] = next_corner(cs, e["pos"])
         with open(os.path.join(SESS_DIR, s["summary"]["id"] + ".json"), "w") as f:
             json.dump(s, f)
     with open(HISTORY, "w") as f:

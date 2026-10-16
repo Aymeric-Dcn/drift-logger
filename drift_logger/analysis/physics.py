@@ -100,3 +100,69 @@ def g_stats(df):
             "max_brake": round(float(-df.acc_g_z.quantile(0.01)), 2),
             "max_acc": round(float(df.acc_g_z.quantile(0.99)), 2),
             "drift_g": round(float(dd.g.mean()), 2) if len(dd) else None}
+
+
+DS_LOCK = -0.25       # rear slip ratio after re-engagement below this = the downshift locked the rear
+
+
+def downshifts(df, gears, spec):
+    """Every downshift: was there a throttle blip with the brake on (heel-toe), did the brake
+    stay pressed during the blip, how close were the revs to the new gear's revs when the
+    clutch came back, and how hard the rear wheels were jerked."""
+    g = df.gear.values.astype(int)
+    t = df.time_s.values
+    top = spec["power"][-1][0] if spec else None
+    out, last = [], None
+    for i in range(1, len(df)):
+        prev = last
+        if g[i] >= 1:
+            last = g[i]
+        if not (g[i] >= 1 and prev and g[i] < prev and g[i - 1] != g[i] and df.speed_kmh.iat[i] > 20
+                and df.track_pos.iat[i] < 0.999):  # past the finish: just stopping the car
+            continue
+        w = df[(df.time_s >= t[i] - 1.0) & (df.time_s <= t[i] + 1.0)]
+        cl = w[w.clutch < 0.5]
+        if not len(cl):
+            continue
+        c0, c1 = float(cl.time_s.iloc[0]), float(cl.time_s.iloc[-1])
+        sh = df[(df.time_s >= c0) & (df.time_s <= c1)]
+        hz = len(sh) / max(c1 - c0, 0.01) if len(sh) > 1 else 90.0
+        before = df[(df.time_s >= c0 - 0.4) & (df.time_s < c0)].brake
+        braking = float(max(before.max() if len(before) else 0, sh.brake.max()))
+        blip = sh.throttle > 0.3
+        j = df.index[df.time_s >= c1][0]
+        k = gears.get(str(g[i]))
+        target = df.speed_kmh.at[j] / k * 1000 if k else None
+        after = df[(df.time_s > c1) & (df.time_s <= c1 + 0.4)]
+        rear = after[["slip_ratio_rl", "slip_ratio_rr"]].mean(axis=1).clip(-1, 1)
+        ev = {"t": round(t[i], 2), "pos": round(float(df.track_pos.iat[i]), 5),
+              "x": round(float(df.world_x.iat[i]), 1), "z": round(float(df.world_z.iat[i]), 1),
+              "from": int(prev), "to": int(g[i]), "speed": round(float(df.speed_kmh.iat[i]), 0),
+              "braking": braking > 0.2, "blip": bool(blip.any()),
+              "blip_s": round(float(blip.sum() / hz), 2),
+              "clutch_s": round(c1 - c0, 2),
+              "rpm": int(df.rpm.at[j]), "target": int(target) if target else None,
+              "match": round(float(df.rpm.at[j] / target * 100), 0) if target else None,
+              "over_rev": bool(target and top and target > top + 200),
+              "rear": round(float(rear.min()) * 100, 0) if len(rear) else None}
+        ev["heel_toe"] = bool(ev["braking"] and ((sh.brake > 0.1) & (sh.throttle > 0.15)).any())
+        # brake held: no dip to zero while the clutch is in, if braking carries on after the shift
+        # (the foot often rolls off the brake while blipping; ending the braking zone is fine)
+        if ev["heel_toe"]:
+            later = df[(df.time_s > c1) & (df.time_s <= c1 + 0.5)].brake
+            ev["brake_held"] = not (sh.brake.min() < 0.05 and len(later) and later.max() > 0.15)
+        else:
+            ev["brake_held"] = None
+        ev["lock"] = bool(ev["rear"] is not None and ev["rear"] <= DS_LOCK * 100)
+        out.append(ev)
+    return out
+
+
+def downshift_lock_mask(df, events):
+    """Samples just after a downshift that locked the rear: an initiation technique of its own."""
+    m = np.zeros(len(df), dtype=bool)
+    t = df.time_s.values
+    for e in events:
+        if e["lock"]:
+            m |= (t >= e["t"] - 0.2) & (t <= e["t"] + 0.8)
+    return m
