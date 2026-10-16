@@ -40,6 +40,7 @@ Lit la courbe de puissance et le poids de la voiture dans `content/cars/<voiture
 - pour chaque rapport, les vitesses où le moteur est dans cette zone, avec la vitesse d'entrée de chaque glisse : on voit les plages où aucun rapport ne convient ;
 - un calculateur de G (latéral contre longitudinal, coloré par angle de dérive) avec les G max en latéral, au freinage et en accélération ;
 - les départs, y compris avortés (l'arrière a décroché de 6 à 12° puis s'est raccroché), pour que la réussite de chaque technique compte toutes les tentatives ;
+- talon-pointe : pour chaque rétrogradage, coup de gaz pendant le freinage ou non, frein tenu pendant le coup de gaz, durée du coup de gaz, écart entre le régime au relâcher de l'embrayage et le régime du nouveau rapport, et à-coup sur les roues arrière. Un rétrogradage qui bloque l'arrière et lance la glisse compte comme un lancement à part, *rétrogradage* ;
 - pour chaque glisse : régime, part de la puissance max, patinage arrière, vitesse gagnée ou perdue par seconde, G moyen et temps volant en butée.
 
 L'API Python d'AC ne donne pas le cap de la voiture : il est reconstruit en intégrant la vitesse de lacet, recalée en continu sur la direction de déplacement moins l'angle de dérive (environ 0,4° d'erreur médiane).

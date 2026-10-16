@@ -9,7 +9,7 @@
   --hair: #dce1e8; --axis: #c3cad4; --accent: #1d5fbf; --accent-wash: #e3ecf8; --good: #0a7d2c; --good-line: #0ca30c;
   --crit: #d03b3b; --serious: #ec835a; --warn: #fab219;
   --a0: #b9c1cc; --a1: #86b6ef; --a2: #3987e5; --a3: #1c5cab; --a4: #0d366b;
-  --t-power: #2a78d6; --t-lift: #eb6834; --t-feint: #1baf7a; --t-brake: #eda100; --t-clutch: #e87ba4; --t-transition: #008300; --t-other: #6250d6; --t-handbrake: #e34948; --t-grip: #b9c1cc;
+  --t-power: #2a78d6; --t-lift: #eb6834; --t-feint: #1baf7a; --t-brake: #eda100; --t-clutch: #e87ba4; --t-transition: #008300; --t-other: #6250d6; --t-handbrake: #e34948; --t-downshift: #8a5a00; --t-grip: #b9c1cc;
   --p1: #e8590c; --p2: #7048e8; --p3: #0b7f8f;
   --offroad: #e4e9e1; --road: #ccd3dc; --wall: #6f7a89;
   --display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
@@ -21,7 +21,7 @@
     --bg: #0d1218; --surface: #141b24; --ink: #e8edf3; --ink-2: #b2bccb; --muted: #7f8a99;
     --hair: #243040; --axis: #34404f; --accent: #5b98ec; --accent-wash: #1a2a40; --good: #2fbf5a; --good-line: #2fbf5a;
     --a0: #3e4856; --a1: #1c5cab; --a2: #2a78d6; --a3: #5598e7; --a4: #9ec5f4;
-    --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-handbrake: #e66767; --t-grip: #3e4856;
+    --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-handbrake: #e66767; --t-downshift: #d6a243; --t-grip: #3e4856;
     --p1: #ff8a3d; --p2: #9d80fb; --p3: #2bbcd2;
     --offroad: #0e1317; --road: #242d38; --wall: #6b788a;
     color-scheme: dark;
@@ -31,7 +31,7 @@
   --bg: #0d1218; --surface: #141b24; --ink: #e8edf3; --ink-2: #b2bccb; --muted: #7f8a99;
   --hair: #243040; --axis: #34404f; --accent: #5b98ec; --accent-wash: #1a2a40; --good: #2fbf5a; --good-line: #2fbf5a;
   --a0: #3e4856; --a1: #1c5cab; --a2: #2a78d6; --a3: #5598e7; --a4: #9ec5f4;
-  --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-handbrake: #e66767; --t-grip: #3e4856;
+  --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-handbrake: #e66767; --t-downshift: #d6a243; --t-grip: #3e4856;
   --p1: #ff8a3d; --p2: #9d80fb; --p3: #2bbcd2;
   --offroad: #0e1317; --road: #242d38; --wall: #6b788a;
   color-scheme: dark;
@@ -372,6 +372,10 @@ footer { font-size: 12px; color: var(--muted); }
       <section class="panel"><div class="panel-head"><h2 data-i18n="advStarts"></h2><span class="note" data-i18n="advStartsNote"></span></div>
         <div class="table-scroll"><table id="adv-starts"></table></div><ul class="insights" id="adv-starts-ins"></ul></section>
     </div>
+    <section class="panel"><div class="panel-head"><h2 data-i18n="advHT"></h2><span class="note" data-i18n="advHTNote"></span></div>
+      <div class="tiles" id="ht-tiles"></div>
+      <div class="two"><div><div class="map-box" id="ht-chart"></div><div class="legend" id="ht-legend"></div></div><ul class="insights" id="ht-ins"></ul></div>
+      <div class="table-scroll"><table id="ht-table"></table></div></section>
     <section class="panel"><div class="panel-head"><h2 data-i18n="advDrifts"></h2><span class="note" data-i18n="advDriftsNote"></span></div>
       <div class="table-scroll"><table id="adv-table"></table></div><ul class="insights" id="adv-table-ins"></ul></section>
   </div>
@@ -425,7 +429,7 @@ footer { font-size: 12px; color: var(--muted); }
       bands: { off: "pied levé (0–5 %)", low: "bas (5–40 %)", mid: "dosé (40–90 %)", full: "à fond (90–100 %)" },
       stabsDrift: "à-coups plein gaz ↔ pied levé par minute de glisse", stabsGrip: "par minute hors glisse, pour comparer",
       stabsHint: "Un à-coup = passer de plus de 85 % à moins de 10 % (ou l'inverse) en moins de 0,35 s.",
-      tech: { transition: "enchaînement", handbrake: "frein à main", feint: "appel-contre-appel", clutch: "clutch kick", brake: "freinage", lift: "lever de pied", power: "gaz", other: "autre", grip: "passage en grip" },
+      tech: { transition: "enchaînement", handbrake: "frein à main", downshift: "rétrogradage", feint: "appel-contre-appel", clutch: "clutch kick", brake: "freinage", lift: "lever de pied", power: "gaz", other: "autre", grip: "passage en grip" },
       reason: { handbrake_late: "frein à main en pleine glisse", too_fast: "entrée trop rapide", rear_lock: "arrière bloqué", lift: "pied levé", late_cs: "contre-braquage tardif", over_angle: "trop d'angle", line: "placement", exit_wide: "sortie trop large", understeer: "sous-virage en grip" },
       cd: { rate: "réussite", entryOk: "entrée quand ça passe", entryKo: "entrée quand ça casse", brake: "début du freinage", angle: "angle moyen réussi", before: "m avant",
         insights: "Ce que disent les données", byTech: "Par technique de lancement", vsTitle: "Réussis vs ratés", attempts: "Tous les passages", map: "Tes trajectoires dans ce virage",
@@ -453,7 +457,18 @@ footer { font-size: 12px; color: var(--muted); }
       advG: "Calculateur de G", advGNote: "Un point toutes les 0,1 s : accélération latérale et longitudinale",
       advStarts: "Départs de glisse", advStartsNote: "Une tentative = une glisse lancée ou un départ avorté",
       advDrifts: "La physique de chaque glisse", advDriftsNote: "Patinage AR : de combien les roues arrière tournent plus vite que la voiture avance. Vitesse : km/h gagnés (+) ou perdus (−) par seconde de glisse",
-      adv: { hp: "ch", rpm: "tr/min", band: "Zone utile (≥ 85 % de la puissance)",
+      advHT: "Talon-pointe", advHTNote: "Chaque rétrogradage : coup de gaz pendant le freinage, frein tenu, et régime au moment où l'embrayage reprend comparé au régime idéal du nouveau rapport",
+      adv: { ht: { none: "Aucun rétrogradage dans cette session.", tHT: "rétrogradages au freinage faits en talon-pointe", tMatch: "régime calé au relâcher (médiane, 100 % = parfait)", tHeld: "frein tenu pendant le coup de gaz", tBlip: "durée médiane du coup de gaz",
+        chart: "Durée du coup de gaz et calage du régime", xAxis: "durée du coup de gaz", legBand: "bien calé (93–105 %)", legHeld: "frein tenu", legDrop: "frein relâché", legNone: "sans coup de gaz", legLock: "l'arrière s'est bloqué",
+        insBlip: (a, n, b, m) => `Coups de gaz de moins de 0,18 s : régime calé à ${a} % (médiane de ${n}). À partir de 0,18 s : ${b} % (${m}). Le moteur a besoin de ce temps pour monter : appuie un peu plus longtemps.`,
+        insDrop: (n, m) => `Frein relâché pendant ${n} talon-pointe sur ${m} : en tournant le pied pour donner le gaz, la pointe quitte la pédale et la voiture arrête de ralentir pile pendant le rétrogradage. Garde la pointe appuyée et fais rouler le côté du pied.`,
+        insRear: (a, b) => `Régime calé à 90 % ou plus : l'arrière ralentit de ${a} % au relâcher de l'embrayage. Sous 80 % : ${b} %. C'est ce coup de frein moteur qui déstabilise l'arrière juste avant le virage.`,
+        insLock: list => `Rétrogradage sans coup de gaz qui bloque l'arrière et lance la glisse : ${list}. Compté comme lancement « rétrogradage ».`,
+        insOver: (c, g, v, r) => `${c} : la ${g} à ${v} km/h demanderait ${r} tr/min, au-delà du rupteur. Ça lance la glisse dans le jeu, mais sur une vraie voiture le moteur ou la boîte prendraient cher.`,
+        cols: ["Temps", "Virage", "Rapport", "Vitesse", "Talon-pointe", "Coup de gaz", "Frein", "Régime / idéal", "Calage", "Arrière"],
+        yes: "oui", noBlip: "sans coup de gaz", offBrake: "hors freinage", lockShift: "bloque l'arrière", held: "tenu", dropped: "relâché", over: "surrégime",
+        blipShort: "coup de gaz", matchShort: "calage", rearShort: "arrière" },
+        hp: "ch", rpm: "tr/min", band: "Zone utile (≥ 85 % de la puissance)",
         vs: (n, kg, x) => `${n} : ${kg} kg/ch, soit ${x}× plus de puissance par kilo`,
         noSpec: "Courbe de puissance introuvable : relance l'analyse avec le dossier d'Assetto Corsa accessible (variable AC_ROOT si besoin).",
         k: { pw: "de la puissance max, en moyenne en glisse", launch: "des départs deviennent des glisses", lat: "G latéral max", brake: "G au freinage max", acc: "G en accélération max", drift: "G moyen en glisse" },
@@ -511,7 +526,7 @@ footer { font-size: 12px; color: var(--muted); }
       bands: { off: "foot off (0–5%)", low: "low (5–40%)", mid: "modulated (40–90%)", full: "flat out (90–100%)" },
       stabsDrift: "full-throttle ↔ foot-off stabs per minute of drifting", stabsGrip: "per minute in grip, for comparison",
       stabsHint: "A stab = going from above 85% to below 10% (or back) in under 0.35 s.",
-      tech: { transition: "transition", handbrake: "handbrake", feint: "feint", clutch: "clutch kick", brake: "braking", lift: "lift-off", power: "power over", other: "other", grip: "grip pass" },
+      tech: { transition: "transition", handbrake: "handbrake", downshift: "downshift", feint: "feint", clutch: "clutch kick", brake: "braking", lift: "lift-off", power: "power over", other: "other", grip: "grip pass" },
       reason: { handbrake_late: "handbrake mid-drift", too_fast: "too fast on entry", rear_lock: "rear lock", lift: "foot off", late_cs: "late counter-steer", over_angle: "too much angle", line: "line / placement", exit_wide: "ran wide on exit", understeer: "understeer in grip" },
       cd: { rate: "success", entryOk: "entry when it works", entryKo: "entry when it fails", brake: "braking starts", angle: "avg angle, successful", before: "m before",
         insights: "What the data says", byTech: "By initiation technique", vsTitle: "Successful vs failed", attempts: "Every pass", map: "Your lines through this corner",
@@ -539,7 +554,18 @@ footer { font-size: 12px; color: var(--muted); }
       advG: "G-force meter", advGNote: "One dot every 0.1 s: lateral and longitudinal acceleration",
       advStarts: "Drift initiations", advStartsNote: "An attempt = a drift that started or an aborted initiation",
       advDrifts: "The physics of each drift", advDriftsNote: "Rear wheelspin: how much faster the rear wheels turn than the car moves. Speed: km/h gained (+) or lost (−) per second of drift",
-      adv: { hp: "hp", rpm: "rpm", band: "Useful band (≥ 85% of peak power)",
+      advHT: "Heel-and-toe", advHTNote: "Every downshift: throttle blip while braking, brake held, and revs when the clutch bites compared to the ideal revs for the new gear",
+      adv: { ht: { none: "No downshift in this session.", tHT: "downshifts under braking done heel-and-toe", tMatch: "rev match when the clutch bites (median, 100% = perfect)", tHeld: "brake held during the blip", tBlip: "median blip length",
+        chart: "Blip length and rev match", xAxis: "blip length", legBand: "well matched (93–105%)", legHeld: "brake held", legDrop: "brake released", legNone: "no blip", legLock: "rear locked",
+        insBlip: (a, n, b, m) => `Blips shorter than 0.18 s: revs matched at ${a}% (median of ${n}). From 0.18 s: ${b}% (${m}). The engine needs that time to spin up: hold the blip a little longer.`,
+        insDrop: (n, m) => `Brake released during ${n} heel-and-toe downshifts out of ${m}: rolling the foot onto the throttle lifts it off the brake, so the car stops slowing right during the shift. Keep the ball of the foot pressing and roll the side onto the throttle.`,
+        insRear: (a, b) => `Revs matched at 90% or more: the rear slows by ${a}% when the clutch bites. Under 80%: ${b}%. That jolt of engine braking unsettles the rear just before the corner.`,
+        insLock: list => `Downshift with no blip that locks the rear and starts the drift: ${list}. Counted as a "downshift" initiation.`,
+        insOver: (c, g, v, r) => `${c}: ${g} at ${v} km/h would need ${r} rpm, past the limiter. It starts the drift in the game, but on a real car the engine or gearbox would suffer.`,
+        cols: ["Time", "Corner", "Gear", "Speed", "Heel-and-toe", "Blip", "Brake", "Revs / ideal", "Match", "Rear"],
+        yes: "yes", noBlip: "no blip", offBrake: "not braking", lockShift: "locks the rear", held: "held", dropped: "released", over: "over-rev",
+        blipShort: "blip", matchShort: "match", rearShort: "rear" },
+        hp: "hp", rpm: "rpm", band: "Useful band (≥ 85% of peak power)",
         vs: (n, kg, x) => `${n}: ${kg} kg/hp, so ${x}× more power per kilo`,
         noSpec: "Power curve not found: run the analysis again with the Assetto Corsa folder reachable (set AC_ROOT if needed).",
         k: { pw: "of peak power, on average while drifting", launch: "of initiations become drifts", lat: "max lateral g", brake: "max braking g", acc: "max acceleration g", drift: "average g while drifting" },
@@ -569,7 +595,7 @@ footer { font-size: 12px; color: var(--muted); }
   const fmt = (v, d = 0) => (v === null || v === undefined || Number.isNaN(v)) ? "–" : Number(v).toLocaleString(L().nf, { minimumFractionDigits: d, maximumFractionDigits: d });
   const pct = (v, d = 0) => (v === null || v === undefined) ? "–" : fmt(v, d) + (state.lang === "fr" ? " %" : "%");
   const colon = () => state.lang === "fr" ? " : " : ": ";
-  const TECH_ORDER = ["power", "lift", "feint", "brake", "clutch", "transition", "handbrake", "other"];
+  const TECH_ORDER = ["power", "lift", "feint", "brake", "clutch", "downshift", "transition", "handbrake", "other"];
   const tcol = t => `var(--t-${t})`;
 
   function prettyCar(s) {
@@ -1308,6 +1334,7 @@ footer { font-size: 12px; color: var(--muted); }
     renderGG(ses);
     renderStarts(dr, ab);
     renderPhysTable(dr);
+    renderHeelToe(ses);
   }
 
   function renderPowerChart(spec, dr, ab) {
@@ -1410,6 +1437,70 @@ footer { font-size: 12px; color: var(--muted); }
     const abLow = ab.filter(a => a.pw !== null && a.pw < 80).length;
     if (ab.length) ins.push(A.insAb(ab.length, abLow));
     $("adv-starts-ins").innerHTML = ins.map(i => `<li><span>${i}</span></li>`).join("");
+  }
+
+  function renderHeelToe(ses) {
+    const A = L().adv, H = A.ht, all = ses.downshifts;
+    ["ht-tiles", "ht-chart", "ht-legend", "ht-ins", "ht-table"].forEach(i => { $(i).innerHTML = ""; });
+    if (!all) { $("ht-tiles").innerHTML = `<p class="note">${L().rp.rerun}</p>`; return; }
+    if (!all.length) { $("ht-tiles").innerHTML = `<p class="note">${H.none}</p>`; return; }
+    const br = all.filter(e => e.braking), ht = br.filter(e => e.heel_toe), held = ht.filter(e => e.brake_held), dropped = ht.filter(e => e.brake_held === false);
+    const med = a => { const v = a.filter(x => x !== null && x !== undefined).sort((x, y) => x - y); return v.length ? v[Math.floor(v.length / 2)] : null; };
+    const matchOf = e => e.over_rev ? null : e.match;
+    const tiles = [
+      [br.length ? `${ht.length}/${br.length}` : "–", H.tHT],
+      [fmt(med(ht.map(matchOf))) + (state.lang === "fr" ? " %" : "%"), H.tMatch],
+      [ht.length ? `${held.length}/${ht.length}` : "–", H.tHeld],
+      [fmt(med(ht.map(e => e.blip_s)), 2) + " s", H.tBlip],
+    ];
+    $("ht-tiles").innerHTML = tiles.map(([v, l]) => `<div class="tile"><span class="v">${v}</span><span class="l">${l}</span></div>`).join("");
+
+    // blip length vs rev match: the longer the blip, the closer the revs
+    const W = 520, Hh = 270, l = 46, r = 14, t = 12, b = 34, xmax = .4, ylo = 40, yhi = 120;
+    const X = v => l + Math.min(v, xmax) / xmax * (W - l - r), Y = v => t + (1 - (Math.max(ylo, Math.min(yhi, v)) - ylo) / (yhi - ylo)) * (Hh - t - b);
+    const svg = el("svg", { viewBox: `0 0 ${W} ${Hh}`, role: "img", "aria-label": H.chart }, $("ht-chart"));
+    el("rect", { x: l, width: W - l - r, y: Y(105), height: Y(93) - Y(105), fill: "var(--good-line)", "fill-opacity": .12 }, svg);
+    [40, 60, 80, 100, 120].forEach(v => { el("line", { x1: l, x2: W - r, y1: Y(v), y2: Y(v), stroke: v === 100 ? "var(--axis)" : "var(--hair)" }, svg); txt(svg, l - 6, Y(v) + 4, v + (state.lang === "fr" ? " %" : "%"), { "text-anchor": "end" }); });
+    [0, .1, .2, .3, .4].forEach(v => txt(svg, X(v), Hh - b + 16, fmt(v, 1) + " s", { "text-anchor": "middle" }));
+    txt(svg, W - r, Hh - 4, H.xAxis, { "text-anchor": "end" });
+    const col = e => !e.heel_toe ? "var(--crit)" : e.brake_held ? "var(--good-line)" : "var(--serious)";
+    br.forEach(e => {
+      const gg = el("g", {}, svg), cx = X(e.blip_s), cy = Y(e.over_rev ? ylo : e.match);
+      if (e.lock) el("path", { d: `M${cx} ${cy - 7}L${cx + 7} ${cy}L${cx} ${cy + 7}L${cx - 7} ${cy}Z`, fill: col(e), stroke: "var(--surface)", "stroke-width": 1.5 }, gg);
+      else el("circle", { cx, cy, r: 5.5, fill: col(e), stroke: "var(--surface)", "stroke-width": 1.5 }, gg);
+      el("circle", { cx, cy, r: 11, fill: "transparent" }, gg);
+      gg.addEventListener("mousemove", ev => showTip(htTip(e), ev)); gg.addEventListener("mouseleave", hideTip);
+    });
+    $("ht-legend").innerHTML = `<span class="ramp"><i style="background:var(--good-line);opacity:.35;height:10px"></i>${H.legBand}</span>` +
+      [["var(--good-line)", H.legHeld], ["var(--serious)", H.legDrop], ["var(--crit)", H.legNone]].map(([c, s]) => `<span class="sym"><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="${c}"/></svg>${s}</span>`).join("") +
+      `<span class="sym"><svg width="14" height="14"><path d="M7 1L13 7L7 13L1 7Z" fill="var(--ink-2)"/></svg>${H.legLock}</span>`;
+
+    const ins = [], avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+    const long = ht.filter(e => e.blip_s >= .18 && !e.over_rev), short = ht.filter(e => e.blip_s < .18 && !e.over_rev);
+    if (long.length && short.length) ins.push(H.insBlip(fmt(med(short.map(e => e.match))), short.length, fmt(med(long.map(e => e.match))), long.length));
+    if (dropped.length) ins.push(H.insDrop(dropped.length, ht.length));
+    const good = ht.filter(e => e.match >= 90 && !e.over_rev), bad = ht.filter(e => e.match < 80 && !e.over_rev);
+    if (good.length && bad.length) ins.push(H.insRear(fmt(-avg(good.map(e => e.rear))), fmt(-avg(bad.map(e => e.rear)))));
+    const locks = all.filter(e => e.lock && e.braking !== undefined && !e.blip);
+    if (locks.length) ins.push(H.insLock(locks.map(e => e.corner ? L().C + e.corner : fmt(e.t, 0) + " s").join(", ")));
+    all.filter(e => e.over_rev).forEach(e => ins.push(H.insOver(e.corner ? L().C + e.corner : fmt(e.t, 0) + " s", A.gearN(e.to), fmt(e.speed), fmt(Math.round(e.target / 100) * 100))));
+    $("ht-ins").innerHTML = ins.map(i => `<li><span>${i}</span></li>`).join("");
+
+    const mcol = v => v === null ? "" : v >= 93 && v <= 108 ? "var(--good)" : v >= 80 ? "var(--ink-2)" : "var(--crit)";
+    $("ht-table").innerHTML = `<thead><tr>${H.cols.map((h, i) => `<th${i === 4 || i === 6 ? ' class="l"' : ""}>${h}</th>`).join("")}</tr></thead><tbody>` + all.map(e => {
+      const m = e.over_rev ? null : e.match;
+      return `<tr><td class="mono">${fmt(e.t, 1)} s</td><td>${e.corner ? L().C + e.corner : "–"}</td><td>${e.from}→${e.to}</td><td>${fmt(e.speed)} km/h</td>
+        <td class="l">${e.heel_toe ? `<span class="status"><span class="dot" style="background:var(--good-line)"></span>${H.yes}</span>` : e.lock && !e.blip ? `<span class="status"><span class="dot" style="background:var(--t-downshift)"></span>${H.lockShift}</span>` : e.braking ? `<span class="status"><span class="dot" style="background:var(--crit)"></span>${H.noBlip}</span>` : `<span class="muted">${e.lock ? H.lockShift : H.offBrake}</span>`}</td>
+        <td>${e.blip ? fmt(e.blip_s, 2) + " s" : "–"}</td>
+        <td class="l">${e.brake_held === true ? H.held : e.brake_held === false ? `<span style="color:var(--serious)">${H.dropped}</span>` : "–"}</td>
+        <td>${fmt(e.rpm)} / ${e.target ? fmt(e.target) : "–"}</td>
+        <td style="color:${mcol(m)};font-weight:600">${e.over_rev ? H.over : m !== null ? pct(m) : "–"}</td>
+        <td>${e.rear !== null ? (e.rear < 0 ? "−" : "") + pct(Math.abs(e.rear)) : "–"}</td></tr>`;
+    }).join("") + "</tbody>";
+  }
+  function htTip(e) {
+    const A = L().adv, H = A.ht;
+    return `<b>${e.corner ? L().C + e.corner + " · " : ""}${e.from}→${e.to}</b> · ${fmt(e.speed)} km/h<br>${H.blipShort} ${fmt(e.blip_s, 2)} s · ${e.over_rev ? H.over : H.matchShort + " " + pct(e.match)}<br>${H.rearShort} ${e.rear !== null ? fmt(e.rear) + (state.lang === "fr" ? " %" : "%") : "–"}${e.brake_held === false ? "<br>" + H.dropped : ""}`;
   }
 
   function renderPhysTable(dr) {
