@@ -40,6 +40,7 @@ Reads the car's power curve and weight from `content/cars/<car>/ui/ui_car.json` 
 - for each gear, the speeds where the engine is in that band, with the entry speed of every drift, which shows speed ranges where no gear works;
 - a G-force meter (lateral vs longitudinal, coloured by slip angle) with max lateral, braking and acceleration g;
 - initiations including aborted ones (the rear stepped out 6 to 12° then gripped again), so the success rate of each technique counts every attempt;
+- understeer: moments where the front tyres slide clearly more than the rears while the car isn't drifting, with what the pedals were doing (throttle, feet off, braking, front lock), whether the brake had just been released before turning in, and seconds of understeer per corner;
 - heel-and-toe: for every downshift, whether the throttle was blipped while braking, whether the brake stayed pressed during the blip, the blip length, how close the revs were to the new gear's revs when the clutch bit, and how hard the rear wheels were jerked. A downshift that locks the rear and starts the drift counts as its own initiation, *downshift*;
 - per drift: revs, share of peak power, rear wheelspin, speed gained or lost per second, average g and time with the steering wheel against its lock.
 

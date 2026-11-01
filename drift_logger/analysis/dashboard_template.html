@@ -373,6 +373,10 @@ footer { font-size: 12px; color: var(--muted); }
       <div class="session-meta" id="adv-car"></div>
       <div class="kpis" id="adv-kpis"></div>
     </section>
+    <section class="panel"><div class="panel-head"><h2 data-i18n="advUS"></h2><span class="note" data-i18n="advUSNote"></span></div>
+      <div class="tiles" id="us-tiles"></div>
+      <div class="two"><div><div class="map-box" id="us-chart"></div><div class="legend" id="us-legend"></div></div><ul class="insights" id="us-ins"></ul></div>
+      <div class="table-scroll"><table id="us-table"></table></div></section>
     <div class="two">
       <section class="panel"><div class="panel-head"><h2 data-i18n="advPower"></h2><span class="note" data-i18n="advPowerNote"></span></div>
         <div class="map-box" id="adv-power"></div><div class="legend" id="adv-power-legend"></div><ul class="insights" id="adv-power-ins"></ul></section>
@@ -473,6 +477,15 @@ footer { font-size: 12px; color: var(--muted); }
       advStarts: "Départs de glisse", advStartsNote: "Une tentative = une glisse lancée ou un départ avorté",
       advDrifts: "La physique de chaque glisse", advDriftsNote: "Patinage AR : de combien les roues arrière tournent plus vite que la voiture avance. Vitesse : km/h gagnés (+) ou perdus (−) par seconde de glisse",
       advHT: "Talon-pointe", advHTNote: "Chaque rétrogradage : coup de gaz pendant le freinage, frein tenu, et régime au moment où l'embrayage reprend comparé au régime idéal du nouveau rapport",
+      advUS: "Sous-virage", advUSNote: "Les pneus avant glissent nettement plus que les arrière alors que la voiture ne dérive pas : elle va tout droit plus que ton volant ne le demande",
+      us: { none: "Pas de sous-virage notable dans cette session.", tTime: p => `en sous-virage (${p} % du run)`, tThr: "de ce temps avec l'accélérateur enfoncé",
+        tRel: "après un freinage relâché avant de tourner", tSteer: "de volant en médiane pendant le sous-virage", chart: "Sous-virage par virage",
+        kind: { throttle: "sur l'accélérateur", coast: "pieds levés", braking: "en freinant", brake_lock: "roues avant bloquées" },
+        insThr: (n, m, p) => `${n} sous-virages sur ${m} arrivent avec l'accélérateur enfoncé (${p} % en médiane). Sur une propulsion peu puissante, accélérer ne fait pas tourner l'arrière : ça déleste l'avant, qui glisse encore plus.`,
+        insRel: (n, m, s) => `${n} sur ${m} suivent un gros freinage relâché ${s} s avant de tourner : la voiture se cabre, l'avant s'allège pile au moment où tu braques. Garde un peu de frein en entrant dans le virage (frein dégressif) pour charger l'avant.`,
+        insSteer: (st, f) => `Pendant le sous-virage, le volant monte à ${st}° en médiane pour ${f}° de glissement à l'avant. Au-delà de 7-8°, un pneu adhère moins : braquer plus ne sert à rien, il faut d'abord ralentir pour que l'avant raccroche.`,
+        insOther: (a, b) => `${a} % du run en sous-virage ici, contre ${b} % en moyenne avec cette voiture sur tes autres routes.`,
+        cols: ["Début", "Virage", "Durée", "Pédales", "Vitesse", "Rapport", "Volant", "Glissement AV / AR"], relShort: s => `frein relâché ${s} s avant` },
       adv: { ht: { none: "Aucun rétrogradage dans cette session.", tHT: "rétrogradages au freinage faits en talon-pointe", tMatch: "régime calé au relâcher (médiane, 100 % = parfait)", tHeld: "frein tenu pendant le coup de gaz", tBlip: "durée médiane du coup de gaz",
         chart: "Durée du coup de gaz et calage du régime", xAxis: "durée du coup de gaz", legBand: "bien calé (93–105 %)", legHeld: "frein tenu", legDrop: "frein relâché", legNone: "sans coup de gaz", legLock: "l'arrière s'est bloqué",
         insBlip: (a, n, b, m) => `Coups de gaz de moins de 0,18 s : régime calé à ${a} % (médiane de ${n}). À partir de 0,18 s : ${b} % (${m}). Le moteur a besoin de ce temps pour monter : appuie un peu plus longtemps.`,
@@ -579,6 +592,15 @@ footer { font-size: 12px; color: var(--muted); }
       advStarts: "Drift initiations", advStartsNote: "An attempt = a drift that started or an aborted initiation",
       advDrifts: "The physics of each drift", advDriftsNote: "Rear wheelspin: how much faster the rear wheels turn than the car moves. Speed: km/h gained (+) or lost (−) per second of drift",
       advHT: "Heel-and-toe", advHTNote: "Every downshift: throttle blip while braking, brake held, and revs when the clutch bites compared to the ideal revs for the new gear",
+      advUS: "Understeer", advUSNote: "The front tyres slide clearly more than the rears while the car isn't drifting: it goes wider than your steering asks",
+      us: { none: "No notable understeer in this session.", tTime: p => `understeering (${p}% of the run)`, tThr: "of that time with the throttle pressed",
+        tRel: "right after releasing the brakes before turning in", tSteer: "median steering while understeering", chart: "Understeer per corner",
+        kind: { throttle: "on the throttle", coast: "feet off", braking: "braking", brake_lock: "front wheels locked" },
+        insThr: (n, m, p) => `${n} understeer moments out of ${m} happen with the throttle pressed (${p}% median). In a low-powered rear-drive car, throttle doesn't swing the rear out: it takes weight off the front, which slides even more.`,
+        insRel: (n, m, s) => `${n} out of ${m} follow a hard braking released ${s} s before turning: the car pitches back and the front goes light just as you steer. Keep some brake while turning in (trail braking) to load the front.`,
+        insSteer: (st, f) => `While understeering the wheel goes to ${st}° (median) for ${f}° of front slip. Past 7-8° a tyre grips less: more steering does nothing, slow down first so the front grips again.`,
+        insOther: (a, b) => `${a}% of the run understeering here, against ${b}% on average with this car on your other roads.`,
+        cols: ["Start", "Corner", "Duration", "Pedals", "Speed", "Gear", "Wheel", "Slip front / rear"], relShort: s => `brake released ${s} s before` },
       adv: { ht: { none: "No downshift in this session.", tHT: "downshifts under braking done heel-and-toe", tMatch: "rev match when the clutch bites (median, 100% = perfect)", tHeld: "brake held during the blip", tBlip: "median blip length",
         chart: "Blip length and rev match", xAxis: "blip length", legBand: "well matched (93–105%)", legHeld: "brake held", legDrop: "brake released", legNone: "no blip", legLock: "rear locked",
         insBlip: (a, n, b, m) => `Blips shorter than 0.18 s: revs matched at ${a}% (median of ${n}). From 0.18 s: ${b}% (${m}). The engine needs that time to spin up: hold the blip a little longer.`,
@@ -1478,6 +1500,7 @@ footer { font-size: 12px; color: var(--muted); }
     renderStarts(dr, ab);
     renderPhysTable(dr);
     renderHeelToe(ses);
+    renderUndersteer(ses);
   }
 
   function renderPowerChart(spec, dr, ab) {
@@ -1580,6 +1603,58 @@ footer { font-size: 12px; color: var(--muted); }
     const abLow = ab.filter(a => a.pw !== null && a.pw < 80).length;
     if (ab.length) ins.push(A.insAb(ab.length, abLow));
     $("adv-starts-ins").innerHTML = ins.map(i => `<li><span>${i}</span></li>`).join("");
+  }
+
+  function renderUndersteer(ses) {
+    const U = L().us, list = ses.understeer, s = history.find(x => x.id === state.session);
+    ["us-tiles", "us-chart", "us-legend", "us-ins", "us-table"].forEach(i => { $(i).innerHTML = ""; });
+    if (!list) { $("us-tiles").innerHTML = `<p class="note">${L().rp.rerun}</p>`; return; }
+    if (!list.length) { $("us-tiles").innerHTML = `<p class="note">${U.none}</p>`; return; }
+    const dur = u => u.t1 - u.t, tot = list.reduce((a, u) => a + dur(u), 0);
+    const by = k => list.filter(u => u.kind === k), share = a => pct(100 * a.reduce((x, u) => x + dur(u), 0) / tot);
+    const rel = list.filter(u => u.released), med = a => { const v = a.slice().sort((x, y) => x - y); return v.length ? v[Math.floor(v.length / 2)] : null; };
+    const prev = history.filter(x => x.id < s.id && x.track === s.track && x.car === s.car && x.understeer_s !== undefined).pop();
+    const delta = prev ? `<span class="delta ${s.understeer_s < prev.understeer_s ? "up" : "down"}">${s.understeer_s < prev.understeer_s ? "▼" : "▲"} ${fmt(Math.abs(s.understeer_s - prev.understeer_s))} s ${L().vsPrev}</span>` : "";
+    $("us-tiles").innerHTML = [
+      [`${fmt(tot)} s`, U.tTime(fmt(s.understeer_pct)), delta],
+      [share(by("throttle")), U.tThr, ""],
+      [`${rel.length}/${list.length}`, U.tRel, ""],
+      [`${fmt(med(list.map(u => u.steer)))}°`, U.tSteer, ""],
+    ].map(([v, l, d]) => `<div class="tile"><span class="v">${v}</span><span class="l">${l}</span>${d}</div>`).join("");
+
+    // seconds of understeer per corner, split by what the pedals were doing
+    const KINDS = ["throttle", "coast", "braking", "brake_lock"], KC = { throttle: "var(--t-power)", coast: "var(--a0)", braking: "var(--t-brake)", brake_lock: "var(--crit)" };
+    const per = {};
+    list.forEach(u => { const c = u.corner || 0, o = per[c] = per[c] || { tot: 0 }; o[u.kind] = (o[u.kind] || 0) + dur(u); o.tot += dur(u); });
+    const rows = Object.entries(per).sort((a, b) => b[1].tot - a[1].tot).slice(0, 10);
+    const W = 520, l = 54, r = 40, rowH = 22, H = rows.length * rowH + 26, max = Math.max(...rows.map(x => x[1].tot));
+    const X = v => l + v / max * (W - l - r);
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": U.chart }, $("us-chart"));
+    rows.forEach(([c, o], i) => {
+      const y = 6 + i * rowH; let x0 = 0;
+      const tr = currentTrack(), cc = tr && tr.corners[c - 1];
+      txt(svg, l - 8, y + 13, +c ? L().C + c : "–", { "text-anchor": "end", fill: "var(--ink)", "font-family": "Saira Condensed, Arial Narrow, sans-serif", "font-size": 13, "font-weight": 600 });
+      KINDS.forEach(k => { if (!o[k]) return; const rect = el("rect", { x: X(x0), y, width: Math.max(1, X(x0 + o[k]) - X(x0) - 1), height: rowH - 6, fill: KC[k], rx: 2 }, svg); x0 += o[k];
+        rect.addEventListener("mousemove", e => showTip(`<b>${+c ? L().C + c : "–"}${cc ? " · " + cornerName(cc) : ""}</b><br>${U.kind[k]}${colon()}${fmt(o[k], 1)} s`, e)); rect.addEventListener("mouseleave", hideTip); });
+      txt(svg, X(o.tot) + 6, y + 13, fmt(o.tot, 1) + " s", { "font-size": 10.5 });
+    });
+    $("us-legend").innerHTML = KINDS.map(k => `<span class="sym"><i class="sw" style="background:${KC[k]}"></i>${U.kind[k]}</span>`).join("");
+
+    const ins = [];
+    const thr = by("throttle");
+    if (thr.length) ins.push(U.insThr(thr.length, list.length, fmt(100 * med(thr.map(u => u.thr)))));
+    if (rel.length) ins.push(U.insRel(rel.length, list.length, fmt(med(rel.map(u => u.release_s)), 1)));
+    ins.push(U.insSteer(fmt(med(list.map(u => u.steer))), fmt(med(list.map(u => u.front)))));
+    const others = history.filter(x => x.car === s.car && x.track !== s.track && x.understeer_pct !== undefined);
+    if (others.length) ins.push(U.insOther(fmt(s.understeer_pct), fmt(others.reduce((a, x) => a + x.understeer_pct, 0) / others.length)));
+    $("us-ins").innerHTML = ins.map(i => `<li><span>${i}</span></li>`).join("");
+
+    $("us-table").innerHTML = `<thead><tr><th></th>${U.cols.map((h, i) => `<th${i === 3 ? ' class="l"' : ""}>${h}</th>`).join("")}</tr></thead><tbody>` +
+      list.slice().sort((a, b) => dur(b) - dur(a)).slice(0, 15).map(u => `<tr><td><button class="btn mini" data-t="${u.t}" title="${L().rp.playDrift}" aria-label="${L().rp.playDrift}">▶</button></td>
+        <td class="mono">${fmt(u.t, 1)} s</td><td>${u.corner ? L().C + u.corner : "–"}</td><td>${fmt(dur(u), 1)} s</td>
+        <td class="l"><span class="status"><span class="dot" style="background:${KC[u.kind]}"></span>${U.kind[u.kind]}</span>${u.released ? ` <span class="muted">· ${U.relShort(fmt(u.release_s, 1))}</span>` : ""}</td>
+        <td>${fmt(u.speed)} → ${fmt(u.speed_end)} km/h</td><td>${u.gear}</td><td>${fmt(u.steer)}°</td><td>${fmt(u.front)}° / ${fmt(u.rear)}°</td></tr>`).join("") + "</tbody>";
+    $("us-table").querySelectorAll("[data-t]").forEach(b => b.addEventListener("click", () => playDrift(state.session, +b.dataset.t)));
   }
 
   function renderHeelToe(ses) {
