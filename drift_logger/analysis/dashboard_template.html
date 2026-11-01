@@ -227,6 +227,8 @@ footer { font-size: 12px; color: var(--muted); }
 .pchip:hover { border-color: var(--axis); }
 .pchip[aria-pressed="true"] { border-color: var(--pc); box-shadow: inset 0 0 0 1px var(--pc); color: var(--ink); }
 .pchip .sw { background: var(--pc); }
+.pchip.twin { align-self: center; }
+.twin-ins li::before { background: var(--muted); }
 
 @media (max-width: 980px) {
   .grid-main, .grid-corner, .coach, .two, .throttle, .cd-grid { grid-template-columns: minmax(0, 1fr); }
@@ -538,6 +540,7 @@ footer { font-size: 12px; color: var(--muted); }
         cols: ["Temps", "Virage", "Rapport", "Régime moy.", "Puissance", "Patinage AR", "Vitesse km/h/s", "G moy.", "Volant en butée", "Régime", "Fin"],
         rev: { band: "dans la zone", low: "sous-régime", limiter: "rupteur" },
         insLock: (a, n, b, m) => `Volant en butée plus de 0,5 s : ${a}/${n} glisses réussies` + (m ? ` (contre ${b}/${m} quand tu ne fais que la toucher)` : "") + `. En butée, il ne reste plus de contre-braquage : réduis l'angle avant d'y arriver.` },
+      twinOpen: "Voir ce virage dans l'autre sens", twinStats: (c, w, ok, n, e) => `${c} ${w} : ${ok}/${n} passages réussis` + (e ? `, entrée ${e} km/h quand ça passe` : "") + ".",
       dirLabel: "Sens", allDirs: "Montée et descente", dirName: { up: "montée", down: "descente", other: "autre" },
       tier: { model: "modèle", good: "bonne", ok: "moyenne", bad: "à revoir" }, favTip: "Ajouter aux favoris (gardés dans ce navigateur)",
       rkTitle: "Classement des sessions", rkAll: "Toutes", rkFav: "★ Favoris",
@@ -659,6 +662,7 @@ footer { font-size: 12px; color: var(--muted); }
         cols: ["Time", "Corner", "Gear", "Avg revs", "Power", "Rear spin", "Speed km/h/s", "Avg g", "Wheel at lock", "Revs", "End"],
         rev: { band: "in the band", low: "too low", limiter: "limiter" },
         insLock: (a, n, b, m) => `Wheel against the lock for more than 0.5 s: ${a}/${n} drifts successful` + (m ? ` (against ${b}/${m} when you only touch it)` : "") + `. At the lock there is no counter-steer left: take angle off before you get there.` },
+      twinOpen: "See this corner the other way", twinStats: (c, w, ok, n, e) => `${c} ${w}: ${ok}/${n} successful passes` + (e ? `, entry ${e} km/h when it works` : "") + ".",
       dirLabel: "Direction", allDirs: "Uphill and downhill", dirName: { up: "uphill", down: "downhill", other: "other" },
       tier: { model: "model", good: "good", ok: "average", bad: "to review" }, favTip: "Add to favourites (kept in this browser)",
       rkTitle: "Session ranking", rkAll: "All", rkFav: "★ Favourites",
@@ -1170,12 +1174,26 @@ footer { font-size: 12px; color: var(--muted); }
   function bar(name, color, value, max, label, title) {
     return `<div class="bar" ${title ? `title="${title}"` : ""}><span class="name"><span class="dot" style="background:${color}"></span>${name}</span><span class="track"><span class="fill" style="display:block;width:${max ? Math.max(2, 100 * value / max) : 0}%;background:${color}"></span></span><span class="val">${label}</span></div>`;
   }
+  // the same bend on the other layouts (uphill / downhill, wet / dry)
+  const twinsOf = c => (c.twins || []).filter(t => D.tracks[t.track] && D.tracks[t.track].corners[t.id - 1]);
+  const twinChips = c => twinsOf(c).map(t => `<button class="pchip twin" data-tt="${t.track}" data-tid="${t.id}" title="${L().twinOpen}">= ${L().C}${t.id} · ${prettyTrack(t.track)}</button>`).join("");
+  function twinLine(c) {
+    const lines = twinsOf(c).map(t => {
+      const tc = D.tracks[t.track].corners[t.id - 1], st = tc.stats || {};
+      return st.attempts ? L().twinStats(L().C + t.id, prettyTrack(t.track), st.success, st.attempts, st.ok && st.ok.entry !== null ? fmt(st.ok.entry) : null) : null;
+    }).filter(Boolean);
+    return lines.length ? `<ul class="insights twin-ins">${lines.map(x => `<li><span>${x}</span></li>`).join("")}</ul>` : "";
+  }
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-tt]"); if (!b) return;
+    state.track = b.dataset.tt; state.dir = "all"; state.session = null; state.corner = +b.dataset.tid; state.tab = "corners"; save(); renderAll(); window.scrollTo({ top: 0 });
+  });
   function renderCornerDetail() {
     const box = $("corner-detail"), tr = currentTrack();
     if (!tr || state.corner === null) { box.innerHTML = ""; return; }
     const c = tr.corners[state.corner - 1], st = c.stats, att = cornerAttempts(tr, c.id);
     const cd = L().cd;
-    let html = `<div class="cd-head"><span class="big">${L().C}${c.id}</span><h2>${cornerName(c)} · ${fmt(Math.abs(c.turn))}°</h2>${st.treacherous ? `<span class="pill">${L().treacherous}</span>` : ""}<span class="note">${L().passes(st.attempts)}</span></div>`;
+    let html = `<div class="cd-head"><span class="big">${L().C}${c.id}</span><h2>${cornerName(c)} · ${fmt(Math.abs(c.turn))}°</h2>${st.treacherous ? `<span class="pill">${L().treacherous}</span>` : ""}<span class="note">${L().passes(st.attempts)}</span>${twinChips(c)}</div>` + twinLine(c);
     if (!st.attempts) { box.innerHTML = html + `<p class="note">${cd.empty}</p>`; return; }
     html += `<div class="tiles">
       <div class="tile"><span class="v">${pct(st.rate)}</span><span class="l">${cd.rate}</span><span class="s">${st.success}/${st.attempts}</span></div>

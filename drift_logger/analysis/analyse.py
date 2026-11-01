@@ -410,6 +410,44 @@ def update_track(track, sessions, road_sessions=None):
     return data
 
 
+TWIN_DIST = 45.0  # m between corner apexes to call them the same bend
+
+
+def heading_sign(track):
+    return -1 if "downhill" in track else 1
+
+
+def link_twins(tracks):
+    """The same bend seen from another layout of the same map (uphill vs downhill, wet vs dry):
+    matched one to one by apex position; driving the road the other way turns a left into a right."""
+    names = list(tracks)
+    for t in names:
+        for c in tracks[t]["corners"]:
+            c["twins"] = []
+    for a_i, a in enumerate(names):
+        for b in names[a_i + 1:]:
+            if a.split("-")[0].split("_wet")[0][:10] != b.split("-")[0].split("_wet")[0][:10]:
+                continue  # different maps
+            flip = heading_sign(a) != heading_sign(b)
+            pairs = []
+            for ca in tracks[a]["corners"]:
+                for cb in tracks[b]["corners"]:
+                    d = math.hypot(ca["x"] - cb["x"], ca["z"] - cb["z"])
+                    same_way = (ca["dir"] == cb["dir"]) != flip
+                    if d <= TWIN_DIST and same_way:
+                        pairs.append((d, ca, cb))
+            used_a, used_b = set(), set()
+            for d, ca, cb in sorted(pairs, key=lambda p: p[0]):
+                if ca["id"] in used_a or cb["id"] in used_b:
+                    continue
+                used_a.add(ca["id"]); used_b.add(cb["id"])
+                ca["twins"].append({"track": b, "id": cb["id"]})
+                cb["twins"].append({"track": a, "id": ca["id"]})
+    for t, data in tracks.items():
+        with open(os.path.join(TRACK_DIR, safe(t) + ".json"), "w") as f:
+            json.dump(data, f)
+
+
 def next_corner(corners, pos):
     """The corner a braking zone or an initiation leads into: the one containing pos, or the next one."""
     for c in corners:
@@ -485,6 +523,7 @@ def main():
     for t, ss in by_track.items():
         by_road.setdefault(road[t], []).extend(ss)
     tracks = {t: update_track(t, ss, by_road[road[t]]) for t, ss in by_track.items()}
+    link_twins(tracks)
     for s in sessions:  # tag every event and drift with its corner
         cs = tracks[s["summary"]["track"]]["corners"]
         for e in s["events"]:
