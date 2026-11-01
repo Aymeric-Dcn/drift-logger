@@ -206,3 +206,48 @@ def contact_points(df, events, edges):
         e["contact"] = best[1]
         e["wall_gap"] = round(best[0], 1)
         e["no_wall"] = best[0] > 2.0
+
+
+US_FRONT = 7.0      # deg: front tyres sliding past their grip peak
+US_GAP = 4.0        # deg: ...clearly more than the rears
+US_MIN_DUR = 0.25   # s
+
+
+def understeer(df):
+    """Moments where the front tyres slide much more than the rears while the wheel is turned
+    and the car is not sliding: the car goes wider than the steering asks (understeer).
+    Each episode says what the pedals were doing, and whether the driver had braked and then
+    released the brake before turning in (front tyres unloaded at the worst moment)."""
+    fs = df[["slip_angle_fl", "slip_angle_fr"]].abs().mean(axis=1)
+    rs = df[["slip_angle_rl", "slip_angle_rr"]].abs().mean(axis=1)
+    fsr = df[["slip_ratio_fl", "slip_ratio_fr"]].mean(axis=1)
+    on = ((fs > US_FRONT) & (fs - rs > US_GAP) & (df.beta.abs() < 6) &
+          (df.steer_deg.abs() > 40) & (df.speed_kmh > 25)).values
+    t = df.time_s.values
+    out, i, n = [], 0, len(on)
+    while i < n:
+        if not on[i]:
+            i += 1
+            continue
+        j = i
+        while j < n and on[j]:
+            j += 1
+        if t[j - 1] - t[i] >= US_MIN_DUR:
+            w = df.iloc[i:j]
+            lock = float((fsr.iloc[i:j] < -0.15).mean())
+            kind = ("brake_lock" if lock > 0.3 else "braking" if w.brake.mean() > 0.2 else
+                    "throttle" if w.throttle.mean() > 0.4 else "coast")
+            pre = df[(df.time_s > t[i] - 2.5) & (df.time_s < t[i])]
+            braked = pre[pre.brake > 0.1]
+            out.append({"t": round(float(t[i]), 2), "t1": round(float(t[j - 1]), 2),
+                        "pos": round(float(df.track_pos.iat[i]), 5),
+                        "x": round(float(df.world_x.iat[i]), 1), "z": round(float(df.world_z.iat[i]), 1),
+                        "speed": int(w.speed_kmh.iloc[0]), "speed_end": int(w.speed_kmh.iloc[-1]),
+                        "kind": kind, "thr": round(float(w.throttle.mean()), 2), "brk": round(float(w.brake.mean()), 2),
+                        "steer": int(w.steer_deg.abs().max()), "front": round(float(fs.iloc[i:j].mean()), 1),
+                        "rear": round(float(rs.iloc[i:j].mean()), 1), "gear": int(w.gear.iloc[0]),
+                        # braked hard, then let go before turning: the front gets light just as you turn
+                        "released": bool(len(pre) and pre.brake.max() > 0.3 and w.brake.iloc[0] < 0.1),
+                        "release_s": round(float(t[i] - braked.time_s.iloc[-1]), 2) if len(braked) else None})
+        i = j
+    return out

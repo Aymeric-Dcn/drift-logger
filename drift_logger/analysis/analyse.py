@@ -439,10 +439,14 @@ def analyse_file(path):
     physics.contact_points(df, ev, track_edges.edges(meta.get("track", "")))
     ab = physics.aborted(df, dr, spec)
     summary = summarize(sid, meta, df, ev, dr, cs, stabs)
-    summary.update({"aborted": len(ab), "gears": gears, "gforce": physics.g_stats(df)})
+    us = physics.understeer(df)
+    us_s = sum(u["t1"] - u["t"] for u in us)
+    summary.update({"aborted": len(ab), "gears": gears, "gforce": physics.g_stats(df),
+                    "understeer_s": round(us_s, 1), "understeer_n": len(us),
+                    "understeer_pct": round(100.0 * us_s / max(df.time_s.iloc[-1], 1), 1)})
     pw = [d["pw"] for d in dr if d.get("pw") is not None]
     summary["drift_pw"] = round(float(np.mean(pw)), 0) if pw else None
-    return {"summary": summary, "events": ev, "drifts": dr, "aborted": ab, "downshifts": ds, "car_spec": spec,
+    return {"summary": summary, "events": ev, "drifts": dr, "aborted": ab, "downshifts": ds, "understeer": us, "car_spec": spec,
             "countersteer": cs, "stabs": stabs, "corners": detect_corners(df),
             "trace": downsample(df), "file": os.path.basename(path)}
 
@@ -487,7 +491,7 @@ def main():
             e["corner"] = corner_of(cs, e["pos"])
         for d in s["drifts"]:
             d["corner"] = corner_of(cs, (d["pos0"] + d["pos1"]) / 2)
-        for e in s.get("downshifts", []) + s.get("aborted", []):
+        for e in s.get("downshifts", []) + s.get("aborted", []) + s.get("understeer", []):
             e["corner"] = next_corner(cs, e["pos"])
         with open(os.path.join(SESS_DIR, s["summary"]["id"] + ".json"), "w") as f:
             json.dump(s, f)
