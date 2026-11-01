@@ -32,6 +32,10 @@ La voiture est redessinée vue du dessus : un rectangle avec la vitre claire à 
 
 La route est dessinée avec ses vrais bords, lus dans la ligne IA de la piste (`ai/fast_lane.ai` stocke la largeur de route de chaque côté). Le dossier d'Assetto Corsa est cherché aux emplacements Steam habituels, ou via la variable `AC_ROOT`. Sans lui, une bande autour de la trajectoire est dessinée à la place.
 
+## Onglet Classement
+
+Toutes les sessions dans un tableau triable, avec une note sur 100 (40 % glisses réussies, 40 % score moyen des glisses, 10 % chocs francs par km, 10 % sous-virage) et un niveau : modèle, bonne, moyenne, à revoir. La meilleure note pour chaque voiture sur chaque route est marquée comme référence. Les sessions peuvent être mises en favoris (gardés dans le navigateur) et filtrées par sens (montée / descente), comme le reste du dashboard.
+
 ## Onglet Avancé
 
 Lit la courbe de puissance et le poids de la voiture dans `content/cars/<voiture>/ui/ui_car.json` et explique pourquoi une glisse tient ou meurt :

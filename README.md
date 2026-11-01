@@ -32,6 +32,10 @@ The car is redrawn as a top-down rectangle: body, light window at the front, fro
 
 The road is drawn with its real edges, read from the track's AI line (`ai/fast_lane.ai` stores how far the road extends on each side). The Assetto Corsa folder is found in the usual Steam locations, or set `AC_ROOT`. Without it, a band around the driven line is drawn instead.
 
+## Ranking tab
+
+Every session in one sortable table with a score out of 100 (40% successful drifts, 40% average drift score, 10% hard impacts per km, 10% understeer) and a level: model, good, average, to review. The best score for each car on each road is marked as the reference. Sessions can be starred as favourites (kept in the browser) and filtered by direction (uphill / downhill) like the rest of the dashboard.
+
 ## Advanced tab
 
 Reads the car's power curve and weight from `content/cars/<car>/ui/ui_car.json` and explains why drifts live or die:

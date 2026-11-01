@@ -12,6 +12,7 @@
   --t-power: #2a78d6; --t-lift: #eb6834; --t-feint: #1baf7a; --t-brake: #eda100; --t-clutch: #e87ba4; --t-transition: #008300; --t-other: #6250d6; --t-handbrake: #e34948; --t-downshift: #8a5a00; --t-grip: #b9c1cc;
   --p1: #e8590c; --p2: #7048e8; --p3: #0b7f8f;
   --offroad: #e4e9e1; --road: #ccd3dc; --wall: #6f7a89;
+  --tier-model: #a86b00; --tier-model-bg: #fdf1d6; --tier-good: #0a7d2c; --tier-good-bg: #e2f4e6; --tier-ok: #5b6573; --tier-ok-bg: #eceff3; --tier-bad: #c23030; --tier-bad-bg: #fbe5e5;
   --display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
   --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -24,6 +25,7 @@
     --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-handbrake: #e66767; --t-downshift: #d6a243; --t-grip: #3e4856;
     --p1: #ff8a3d; --p2: #9d80fb; --p3: #2bbcd2;
     --offroad: #0e1317; --road: #242d38; --wall: #6b788a;
+    --tier-model: #f0b43c; --tier-model-bg: #3a2c0c; --tier-good: #3fcf6a; --tier-good-bg: #12301c; --tier-ok: #a8b3c2; --tier-ok-bg: #222b36; --tier-bad: #f07070; --tier-bad-bg: #3a1616;
     color-scheme: dark;
   }
 }
@@ -34,6 +36,7 @@
   --t-power: #3987e5; --t-lift: #d95926; --t-feint: #199e70; --t-brake: #c98500; --t-clutch: #d55181; --t-transition: #008300; --t-other: #9085e9; --t-handbrake: #e66767; --t-downshift: #d6a243; --t-grip: #3e4856;
   --p1: #ff8a3d; --p2: #9d80fb; --p3: #2bbcd2;
   --offroad: #0e1317; --road: #242d38; --wall: #6b788a;
+  --tier-model: #f0b43c; --tier-model-bg: #3a2c0c; --tier-good: #3fcf6a; --tier-good-bg: #12301c; --tier-ok: #a8b3c2; --tier-ok-bg: #222b36; --tier-bad: #f07070; --tier-bad-bg: #3a1616;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -179,6 +182,13 @@ th[aria-sort="ascending"] button.sort, th[aria-sort="descending"] button.sort { 
 #tip { position: fixed; pointer-events: none; z-index: 50; background: var(--ink); color: var(--surface); font-size: 12px; line-height: 1.45; padding: 7px 9px; border-radius: 6px; max-width: 280px; box-shadow: 0 4px 14px rgba(0,0,0,.18); }
 #tip b { font-weight: 600; }
 footer { font-size: 12px; color: var(--muted); }
+.tier { display: inline-flex; align-items: center; font: 600 11px var(--mono); padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+.tier.model { color: var(--tier-model); background: var(--tier-model-bg); } .tier.good { color: var(--tier-good); background: var(--tier-good-bg); }
+.tier.ok { color: var(--tier-ok); background: var(--tier-ok-bg); } .tier.bad { color: var(--tier-bad); background: var(--tier-bad-bg); }
+.star { font-size: 17px; line-height: 1; background: none; border: 0; cursor: pointer; color: var(--muted); padding: 0 2px; }
+.star[aria-pressed="true"] { color: var(--tier-model); }
+#rk-table tr[data-open] { cursor: pointer; } #rk-table tr[aria-current="true"] td { background: var(--accent-wash); }
+#rk-legend { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 
 /* replay */
 .btn { font: 500 13px var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--hair); border-radius: 6px; padding: 6px 10px; cursor: pointer; min-width: 34px; line-height: 1.2; }
@@ -248,6 +258,7 @@ footer { font-size: 12px; color: var(--muted); }
       <span class="sub" id="totals"></span>
     </div>
     <div class="filters">
+      <div class="field"><label for="f-dir" data-i18n="dirLabel"></label><select id="f-dir"></select></div>
       <div class="field"><label for="f-track" data-i18n="road"></label><select id="f-track"></select></div>
       <div class="field"><label for="f-car" data-i18n="car"></label><select id="f-car"></select></div>
       <div class="field"><label for="f-session" data-i18n="session"></label><select id="f-session"></select></div>
@@ -258,11 +269,23 @@ footer { font-size: 12px; color: var(--muted); }
 
   <nav class="tabs" role="tablist" id="tabs">
     <button role="tab" data-tab="session" id="t-session"></button>
+    <button role="tab" data-tab="ranking" id="t-ranking"></button>
     <button role="tab" data-tab="corners" id="t-corners"></button>
     <button role="tab" data-tab="techniques" id="t-techniques"></button>
     <button role="tab" data-tab="progress" id="t-progress"></button>
     <button role="tab" data-tab="advanced" id="t-advanced"></button>
   </nav>
+
+  <!-- RANKING -->
+  <div class="tab" id="tab-ranking" role="tabpanel" hidden>
+    <section class="panel">
+      <div class="panel-head"><h2 data-i18n="rkTitle"></h2>
+        <div class="seg" role="group"><button id="rk-all" data-i18n="rkAll"></button><button id="rk-fav" data-i18n="rkFav"></button></div></div>
+      <div id="rk-legend"></div>
+      <span class="note" id="rk-count"></span>
+      <div class="table-scroll"><table id="rk-table"></table></div>
+    </section>
+  </div>
 
   <!-- SESSION -->
   <div class="tab" id="tab-session" role="tabpanel">
@@ -411,7 +434,7 @@ footer { font-size: 12px; color: var(--muted); }
   const I18N = {
     fr: {
       telemetry: "télémétrie", road: "Route", car: "Voiture", session: "Session", language: "Langue",
-      tabs: { session: "Session", corners: "Virages", techniques: "Techniques", progress: "Progression", advanced: "Avancé" },
+      tabs: { session: "Session", ranking: "Classement", corners: "Virages", techniques: "Techniques", progress: "Progression", advanced: "Avancé" },
       coaching: "Coaching", mapTitle: "La route, virage par virage", thisSession: "Cette session", allSessions: "Toutes les sessions",
       sessionCorners: "Virages de ce run", clickCorner: "Clique pour le détail",
       cornersTitle: "Virages", sortTrouble: "Les plus traîtres", sortOrder: "Dans l'ordre",
@@ -515,6 +538,12 @@ footer { font-size: 12px; color: var(--muted); }
         cols: ["Temps", "Virage", "Rapport", "Régime moy.", "Puissance", "Patinage AR", "Vitesse km/h/s", "G moy.", "Volant en butée", "Régime", "Fin"],
         rev: { band: "dans la zone", low: "sous-régime", limiter: "rupteur" },
         insLock: (a, n, b, m) => `Volant en butée plus de 0,5 s : ${a}/${n} glisses réussies` + (m ? ` (contre ${b}/${m} quand tu ne fais que la toucher)` : "") + `. En butée, il ne reste plus de contre-braquage : réduis l'angle avant d'y arriver.` },
+      dirLabel: "Sens", allDirs: "Montée et descente", dirName: { up: "montée", down: "descente", other: "autre" },
+      tier: { model: "modèle", good: "bonne", ok: "moyenne", bad: "à revoir" }, favTip: "Ajouter aux favoris (gardés dans ce navigateur)",
+      rkTitle: "Classement des sessions", rkAll: "Toutes", rkFav: "★ Favoris",
+      rk: { rank: "Rang", ref: "référence", count: n => `${n} session${n > 1 ? "s" : ""} · clique une ligne pour l'ouvrir`, noFav: "Pas encore de favori : clique l'étoile d'une session.",
+        legend: "Note /100 : 40 % glisses réussies, 40 % score moyen des glisses, 10 % chocs francs par km, 10 % sous-virage. Référence = ta meilleure note avec cette voiture sur cette route.",
+        cols: ["Note", "Date", "Voiture", "Route", "Sens", "Durée", "km", "Glisses", "Réussies", "Score moy.", "Angle max réussi", "Sous-virage", "Chocs/km"] },
       angTitle: "Angles", angRate: "Réussite selon l'angle maximum atteint", angTop: "Tes plus grosses glisses", angOk: "Réussies", angAll: "Toutes",
       ang: { tMax: "angle max sur une glisse réussie", tAvg: "plus gros angle moyen réussi", tLong: "plus longue glisse réussie à 30° ou plus", tHigh: "de réussite au-delà de 50°",
         rate: "Réussite selon l'angle maximum", legOk: "réussies", legKo: "ratées", binTip: (a, b) => `Angle max entre ${a} et ${b}°`, okOf: (a, n) => `${a} réussies sur ${n}`,
@@ -526,7 +555,7 @@ footer { font-size: 12px; color: var(--muted); }
     },
     en: {
       telemetry: "telemetry", road: "Road", car: "Car", session: "Session", language: "Language",
-      tabs: { session: "Session", corners: "Corners", techniques: "Techniques", progress: "Progress", advanced: "Advanced" },
+      tabs: { session: "Session", ranking: "Ranking", corners: "Corners", techniques: "Techniques", progress: "Progress", advanced: "Advanced" },
       coaching: "Coaching", mapTitle: "The road, corner by corner", thisSession: "This session", allSessions: "All sessions",
       sessionCorners: "Corners in this run", clickCorner: "Click for details",
       cornersTitle: "Corners", sortTrouble: "Most treacherous", sortOrder: "In road order",
@@ -630,6 +659,12 @@ footer { font-size: 12px; color: var(--muted); }
         cols: ["Time", "Corner", "Gear", "Avg revs", "Power", "Rear spin", "Speed km/h/s", "Avg g", "Wheel at lock", "Revs", "End"],
         rev: { band: "in the band", low: "too low", limiter: "limiter" },
         insLock: (a, n, b, m) => `Wheel against the lock for more than 0.5 s: ${a}/${n} drifts successful` + (m ? ` (against ${b}/${m} when you only touch it)` : "") + `. At the lock there is no counter-steer left: take angle off before you get there.` },
+      dirLabel: "Direction", allDirs: "Uphill and downhill", dirName: { up: "uphill", down: "downhill", other: "other" },
+      tier: { model: "model", good: "good", ok: "average", bad: "to review" }, favTip: "Add to favourites (kept in this browser)",
+      rkTitle: "Session ranking", rkAll: "All", rkFav: "★ Favourites",
+      rk: { rank: "Rank", ref: "reference", count: n => `${n} session${n > 1 ? "s" : ""} · click a row to open it`, noFav: "No favourite yet: click a session's star.",
+        legend: "Score /100: 40% successful drifts, 40% average drift score, 10% hard impacts per km, 10% understeer. Reference = your best score with this car on this road.",
+        cols: ["Score", "Date", "Car", "Road", "Direction", "Duration", "km", "Drifts", "Successful", "Avg score", "Max successful angle", "Understeer", "Impacts/km"] },
       angTitle: "Angles", angRate: "Success by maximum angle reached", angTop: "Your biggest drifts", angOk: "Successful", angAll: "All",
       ang: { tMax: "max angle on a successful drift", tAvg: "biggest successful average angle", tLong: "longest successful drift at 30° or more", tHigh: "success above 50°",
         rate: "Success by maximum angle", legOk: "successful", legKo: "failed", binTip: (a, b) => `Max angle between ${a} and ${b}°`, okOf: (a, n) => `${a} successful out of ${n}`,
@@ -640,10 +675,10 @@ footer { font-size: 12px; color: var(--muted); }
       up: "uphill", down: "downhill", nf: "en-GB",
     },
   };
-  const state = { track: "all", car: "all", session: null, mode: "session", lang: "fr", tab: "session", corner: null, csort: "trouble", cam: "road", strobe: false };
+  const state = { track: "all", car: "all", session: null, mode: "session", lang: "fr", tab: "session", corner: null, csort: "trouble", cam: "road", strobe: false, dir: "all" };
   try { Object.assign(state, JSON.parse(localStorage.getItem("dl-prefs") || "{}")); } catch (e) {}
   const h = location.hash.replace("#", "");
-  if (["session", "corners", "techniques", "progress", "advanced"].includes(h)) state.tab = h;
+  if (["session", "ranking", "corners", "techniques", "progress", "advanced"].includes(h)) state.tab = h;
   const L = () => I18N[state.lang] || I18N.fr;
   const fmt = (v, d = 0) => (v === null || v === undefined || Number.isNaN(v)) ? "–" : Number(v).toLocaleString(L().nf, { minimumFractionDigits: d, maximumFractionDigits: d });
   const pct = (v, d = 0) => (v === null || v === undefined) ? "–" : fmt(v, d) + (state.lang === "fr" ? " %" : "%");
@@ -668,6 +703,7 @@ footer { font-size: 12px; color: var(--muted); }
   const shortDate = d => d.slice(11, 16) + " · " + d.slice(8, 10) + "/" + d.slice(5, 7);
 
   const history = D.history.slice().sort((a, b) => a.id.localeCompare(b.id));
+  const dirOf = t => /downhill/.test(t) ? "down" : /uphill/.test(t) ? "up" : "other";
   history.forEach(s => { s.mid = s.thr_bands ? s.thr_bands.mid : null; s.heavy_km = s.distance_km > 0.05 ? (s.impacts_heavy ?? s.impacts) / s.distance_km : null; });
 
   const tip = $("tip");
@@ -683,8 +719,57 @@ footer { font-size: 12px; color: var(--muted); }
   function el(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
   function txt(parent, x, y, s, attrs) { const t = el("text", Object.assign({ x, y, "font-size": 11, fill: "var(--muted)", "font-family": "IBM Plex Mono, monospace" }, attrs || {}), parent); t.textContent = s; return t; }
 
+  /* ---------- session rating, favourites, ranking ---------- */
+  // note /100: 40% drift success, 40% average drift score, 10% hard impacts per km, 10% understeer
+  function rateOf(s) {
+    const hk = (s.impacts_heavy ?? s.impacts ?? 0) / Math.max(s.distance_km || 0, .1), us = s.understeer_pct || 0;
+    const r = .4 * (s.clean_pct || 0) + .4 * (s.avg_score || 0) + 10 * Math.max(0, 1 - hk / 2) + 10 * Math.max(0, 1 - us / 15);
+    const tier = r >= 74 && s.drifts >= 15 ? "model" : r >= 68 ? "good" : r >= 60 ? "ok" : "bad";
+    return { r: Math.round(r), tier };
+  }
+  history.forEach(s => { Object.assign(s, { rate: rateOf(s) }); s.dir = dirOf(s.track); });
+  // reference = best note for each car on each road layout
+  history.forEach(s => { const peers = history.filter(x => x.car === s.car && x.track === s.track); s.isRef = peers.length > 1 && s.rate.r === Math.max(...peers.map(x => x.rate.r)); });
+  let favs = [];
+  try { favs = JSON.parse(localStorage.getItem("dl-favs") || "[]"); } catch (e) {}
+  const isFav = id => favs.includes(id);
+  function toggleFav(id) { favs = isFav(id) ? favs.filter(x => x !== id) : favs.concat(id); try { localStorage.setItem("dl-favs", JSON.stringify(favs)); } catch (e) {} renderAll(); }
+  const tierChip = s => `<span class="tier ${s.rate.tier}">${L().tier[s.rate.tier]} · ${s.rate.r}</span>`;
+  const starBtn = id => `<button class="star" data-fav="${id}" aria-pressed="${isFav(id)}" title="${L().favTip}" aria-label="${L().favTip}">${isFav(id) ? "★" : "☆"}</button>`;
+  function bestAngle(id) { const s = D.sessions[id]; if (!s) return null; const ok = s.drifts.filter(d => d.success); return ok.length ? Math.max(...ok.map(d => d.max_angle)) : null; }
+
+  function renderRanking() {
+    const R = L().rk;
+    let list = filtered().slice();
+    if (state.favOnly) list = list.filter(s => isFav(s.id));
+    const cur = state.rsort || { k: "note", dir: -1 };
+    const keys = ["note", "date", "car", "track", "dir", "duration", "km", "drifts", "clean", "score", "angle", "us", "hits"];
+    const val = (s, k) => ({ note: s.rate.r, date: s.id, car: prettyCar(s.car), track: prettyTrack(s.track), dir: s.dir, duration: s.duration_s, km: s.distance_km, drifts: s.drifts,
+      clean: s.clean_pct, score: s.avg_score, angle: bestAngle(s.id) ?? -1, us: s.understeer_pct ?? 999, hits: (s.impacts_heavy ?? 0) / Math.max(s.distance_km, .1) })[k];
+    list.sort((a, b) => { const x = val(a, cur.k), y = val(b, cur.k); return (x < y ? -1 : x > y ? 1 : 0) * cur.dir; });
+    const byNote = filtered().slice().sort((a, b) => b.rate.r - a.rate.r).map(s => s.id);
+    $("rk-count").textContent = R.count(list.length);
+    $("rk-table").innerHTML = `<thead><tr><th></th><th>${R.rank}</th>${sortHead(R.cols, keys, cur, [1, 2, 3, 4])}</tr></thead><tbody>` + list.map(s =>
+      `<tr class="hov" data-open="${s.id}" ${s.id === state.session ? 'aria-current="true"' : ""}><td>${starBtn(s.id)}</td><td class="mono">${byNote.indexOf(s.id) + 1}</td>
+        <td>${tierChip(s)}${s.isRef ? ` <span class="chip">${R.ref}</span>` : ""}</td><td class="l mono">${shortDate(s.date)}</td><td class="l">${prettyCar(s.car)}</td>
+        <td class="l">${prettyTrack(s.track).split(" · ")[0]}</td><td class="l">${L().dirName[s.dir]}</td><td>${fmt(s.duration_s / 60, 1)} min</td><td>${fmt(s.distance_km, 1)}</td><td>${s.drifts}</td>
+        <td>${pct(s.clean_pct)}</td><td>${fmt(s.avg_score)}</td><td>${bestAngle(s.id) !== null ? fmt(bestAngle(s.id)) + "°" : "–"}</td><td>${s.understeer_pct !== undefined ? pct(s.understeer_pct) : "–"}</td>
+        <td>${fmt((s.impacts_heavy ?? 0) / Math.max(s.distance_km, .1), 1)}</td></tr>`).join("") + "</tbody>";
+    if (!list.length) $("rk-table").innerHTML += `<tbody><tr><td colspan="15" class="l note">${state.favOnly ? R.noFav : L().noSession}</td></tr></tbody>`;
+    $("rk-table").querySelectorAll("button.sort").forEach(b => b.addEventListener("click", () => {
+      const k = b.dataset.k; state.rsort = { k, dir: cur.k === k ? -cur.dir : (["car", "track", "dir"].includes(k) ? 1 : -1) }; renderRanking();
+    }));
+    $("rk-table").querySelectorAll("tr[data-open]").forEach(tr => tr.addEventListener("click", e => {
+      if (e.target.closest("[data-fav]")) return;
+      state.session = tr.dataset.open; state.tab = "session"; save(); renderAll(); window.scrollTo({ top: 0 });
+    }));
+    $("rk-table").querySelectorAll("[data-fav]").forEach(b => b.addEventListener("click", () => toggleFav(b.dataset.fav)));
+    $("rk-all").setAttribute("aria-pressed", !state.favOnly); $("rk-fav").setAttribute("aria-pressed", !!state.favOnly);
+    $("rk-legend").innerHTML = ["model", "good", "ok", "bad"].map(t => `<span class="tier ${t}">${L().tier[t]}</span>`).join("") + `<span class="note">${R.legend}</span>`;
+  }
+
   /* ---------- filters & tabs ---------- */
-  const filtered = () => history.filter(s => (state.track === "all" || s.track === state.track) && (state.car === "all" || s.car === state.car));
+  const filtered = () => history.filter(s => (state.dir === "all" || s.dir === state.dir) && (state.track === "all" || s.track === state.track) && (state.car === "all" || s.car === state.car));
   function fillSelect(id, values, current, labeler, allLabel) {
     const sel = $(id); sel.innerHTML = "";
     if (allLabel) { const o = document.createElement("option"); o.value = "all"; o.textContent = allLabel; sel.appendChild(o); }
@@ -693,11 +778,13 @@ footer { font-size: 12px; color: var(--muted); }
     return sel.value;
   }
   function renderChrome() {
-    state.track = fillSelect("f-track", [...new Set(history.map(s => s.track))], state.track, prettyTrack, L().allRoads);
+    const dirs = ["up", "down", "other"].filter(d => history.some(s => s.dir === d));
+    state.dir = fillSelect("f-dir", dirs, state.dir, d => L().dirName[d], L().allDirs);
+    state.track = fillSelect("f-track", [...new Set(history.filter(s => state.dir === "all" || s.dir === state.dir).map(s => s.track))], state.track, prettyTrack, L().allRoads);
     state.car = fillSelect("f-car", [...new Set(history.map(s => s.car))], state.car, prettyCar, L().allCars);
     const list = filtered().map(s => s.id);
     if (!list.includes(state.session)) state.session = list[list.length - 1] || null;
-    fillSelect("f-session", list, state.session, id => { const s = history.find(x => x.id === id); return s.date + " · " + prettyCar(s.car); });
+    fillSelect("f-session", list, state.session, id => { const s = history.find(x => x.id === id); return (isFav(id) ? "★ " : "") + s.date + " · " + prettyCar(s.car) + " · " + L().tier[s.rate.tier]; });
     document.querySelectorAll("[data-i18n]").forEach(n => { n.textContent = L()[n.dataset.i18n]; });
     document.documentElement.lang = state.lang;
     $("l-fr").setAttribute("aria-pressed", state.lang === "fr"); $("l-en").setAttribute("aria-pressed", state.lang === "en");
@@ -733,7 +820,7 @@ footer { font-size: 12px; color: var(--muted); }
     const s = history.find(x => x.id === state.session), meta = $("session-meta"), kp = $("kpis");
     if (!s) { meta.innerHTML = `<h2>${L().noSession}</h2>`; kp.innerHTML = ""; return; }
     const prev = prevOf(s);
-    meta.innerHTML = `<h2>${prettyTrack(s.track)}</h2><span>${prettyCar(s.car)}</span>
+    meta.innerHTML = `${starBtn(s.id)}<h2>${prettyTrack(s.track)}</h2><span>${prettyCar(s.car)}</span>${tierChip(s)}${s.isRef ? ` <span class="chip">${L().rk.ref}</span>` : ""}
       <span class="mono muted">${s.date} · ${L().meta(fmt(s.duration_s / 60, 1), fmt(s.distance_km, 1), s.drifts, fmt(s.track_cover * 100))}</span>`;
     kp.innerHTML = "";
     KPI.forEach(c => {
@@ -1828,17 +1915,22 @@ footer { font-size: 12px; color: var(--muted); }
     $(id).innerHTML = `<thead><tr><th>${key === "car" ? L().car : L().road}</th>${L().agg.map(x => `<th>${x}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody>`;
   }
 
-  function save() { try { localStorage.setItem("dl-prefs", JSON.stringify({ track: state.track, car: state.car, mode: state.mode, lang: state.lang, tab: state.tab, corner: state.corner, csort: state.csort, cam: state.cam })); } catch (e) {} }
+  function save() { try { localStorage.setItem("dl-prefs", JSON.stringify({ track: state.track, car: state.car, mode: state.mode, lang: state.lang, tab: state.tab, corner: state.corner, csort: state.csort, cam: state.cam, dir: state.dir })); } catch (e) {} }
   function renderAll() {
     stopAll();
     renderChrome();
     if (state.tab === "session") { renderBand(); renderCoach(); renderMap(); renderSessionCorners(); renderThrottle(); renderStrip(); renderDrifts(); if (sessionPlayer) sessionPlayer.redraw(); }
     if (state.tab === "corners") { renderCornerList(); renderCornerDetail(); }
     if (state.tab === "techniques") { renderTechniques(); renderAngles(); }
+    if (state.tab === "ranking") renderRanking();
     if (state.tab === "advanced") renderAdvanced();
     if (state.tab === "progress") { renderEvo(); aggTable("by-car", "car", prettyCar); aggTable("by-track", "track", prettyTrack); }
   }
   document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => { state.tab = b.dataset.tab; save(); renderAll(); }));
+  $("f-dir").addEventListener("change", e => { state.dir = e.target.value; state.track = "all"; state.session = null; state.corner = null; save(); renderAll(); });
+  $("rk-all").addEventListener("click", () => { state.favOnly = false; renderRanking(); });
+  $("rk-fav").addEventListener("click", () => { state.favOnly = true; renderRanking(); });
+  document.addEventListener("click", e => { const b = e.target.closest("#session-meta [data-fav]"); if (b) toggleFav(b.dataset.fav); });
   $("f-track").addEventListener("change", e => { state.track = e.target.value; state.session = null; state.corner = null; save(); renderAll(); });
   $("f-car").addEventListener("change", e => { state.car = e.target.value; state.session = null; save(); renderAll(); });
   $("f-session").addEventListener("change", e => { state.session = e.target.value; renderAll(); });
