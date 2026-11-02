@@ -47,6 +47,7 @@ CS_ONSET = 15.0           # deg: rear stepping out, start of counter-steer timin
 PUMP_WINDOW = 0.35        # s: full-on <-> full-off within this = a throttle stab
 CORNER_RADIUS = 90.0      # m: max path radius to count as a corner
 CORNER_MIN_LEN = 12.0     # m
+REF_MARGIN = 0.05         # share of road a new session must add to become the corner reference
 THROTTLE_BANDS = [("off", 0.0, 0.05), ("low", 0.05, 0.40), ("mid", 0.40, 0.90), ("full", 0.90, 1.01)]
 
 
@@ -363,7 +364,18 @@ def update_track(track, sessions, road_sessions=None):
     same road (a wet and a dry version of a map share their corner numbers); stats come
     from this track's sessions only."""
     os.makedirs(TRACK_DIR, exist_ok=True)
-    ref = max(road_sessions or sessions, key=lambda s: s["summary"]["track_cover"])
+    pool = road_sessions or sessions
+    ref = max(pool, key=lambda s: s["summary"]["track_cover"])
+    # keep the previous reference unless a new session covers clearly more road:
+    # a new reference renumbers every corner and breaks earlier advice
+    try:
+        with open(os.path.join(TRACK_DIR, safe(track) + ".json")) as f:
+            old = json.load(f).get("ref_session")
+        prev = next((s for s in pool if s["summary"]["id"] == old), None)
+        if prev and prev["summary"]["track_cover"] >= ref["summary"]["track_cover"] - REF_MARGIN:
+            ref = prev
+    except (OSError, ValueError):
+        pass
     corners = [dict(c) for c in ref["corners"]]
     for c in corners:
         c.update({"passes": 0, "drifts": 0, "impacts": 0, "spins": 0, "lifts": 0, "locks": 0,
