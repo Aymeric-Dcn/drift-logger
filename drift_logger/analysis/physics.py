@@ -4,6 +4,7 @@ wheelspin, speed lost per second and g-forces; plus slides that started but
 never became a drift (aborted initiations).
 """
 import numpy as np
+import pandas as pd
 
 import technique
 
@@ -250,4 +251,86 @@ def understeer(df):
                         "released": bool(len(pre) and pre.brake.max() > 0.3 and w.brake.iloc[0] < 0.1),
                         "release_s": round(float(t[i] - braked.time_s.iloc[-1]), 2) if len(braked) else None})
         i = j
+    return out
+
+
+TB_KINDS = ("hairpin", "tight")
+
+
+def trail_brake(df, corners, us_episodes, gforce):
+    """Trail braking, entry by entry, for hairpins and tight corners (from the session's own
+    corner detection; numbered against the track later).
+
+    Score /100: brake still on when turning in (30), brake held while turning (20),
+    progressive release (20), the front bites, i.e. no understeer (20), no front lock (10).
+    When the front bit with grip to spare, estimate how much faster the entry could be."""
+    t = df.time_s.values
+    pos = df.track_pos.values
+    steer = df.steer_deg.abs().values
+    brk = df.brake.values
+    fsr = df[["slip_ratio_fl", "slip_ratio_fr"]].mean(axis=1).values
+    fsa = df[["slip_angle_fl", "slip_angle_fr"]].abs().mean(axis=1).values
+    seg = df.segment.values
+    max_lat = max(gforce.get("max_lat") or 1.0, 0.5)
+    out = []
+    for c in corners:
+        if c["kind"] not in TB_KINDS:
+            continue
+        zone = np.where((pos >= c["pos0"] - 0.003) & (pos <= c["pos1"]))[0]
+        if len(zone) < 20 or seg[zone[0]] != seg[zone[-1]]:
+            continue
+        ti = next((k for k in zone if steer[k] > 30), None)
+        if ti is None or df.speed_kmh.iat[ti] < 20:
+            continue
+        end = zone[-1]
+        tt = t[ti]
+        # brake around the moment the wheel goes in (from 0.1 s before to 0.3 s after)
+        b_ti = float(brk[max(0, ti - 9):ti + 27].mean())
+        b_before = float(brk[(t >= tt - 2.0) & (t < tt)].max(initial=0))
+        after = (t >= tt) & (t <= t[end])
+        # brake held while turning: brake > 10% with the wheel turned
+        held = float(((brk > 0.1) & (steer > 30) & after).sum() / 90.0)
+        # release: from turn-in until the brake is off; steepest drop in pedal per second
+        rel_idx = next((k for k in range(ti, end) if brk[k] < 0.05), end)
+        release_s = float(t[rel_idx] - tt)
+        # steepest release, measured over 0.15 s steps (pedal fraction per second)
+        seg_b = brk[ti:min(rel_idx + 14, len(brk))]
+        drop = float(np.max(seg_b[:-13] - seg_b[13:]) / 0.15) if len(seg_b) > 14 else (b_ti / 0.15 if b_ti > 0.08 else 0.0)
+        lock = bool((fsr[ti:end] < -0.15).mean() > 0.05)
+        # does the front bite on entry: understeer from just before turn-in to 2 s after
+        t_end = min(t[end], tt + 2.0)
+        us = sum(min(u["t1"], t_end) - max(u["t"], tt - 0.3) for u in us_episodes
+                 if u["t1"] >= tt - 0.3 and u["t"] <= t_end)
+        us = max(0.0, us)
+        # lateral g used (impacts clipped out, smoothed over 0.2 s)
+        lat = float(pd.Series(np.clip(np.abs(df.acc_g_x.values[ti:end]), 0, 1.6)).rolling(18, min_periods=1).median().max())
+        beta = float(np.abs(df.beta.values[ti:end]).max())
+        v = float(df.speed_kmh.iat[ti])
+        # score
+        s_ti = 30 if 0.15 <= b_ti <= 0.6 else (22 if b_ti > 0.6 else (15 if b_ti >= 0.08 else 0))
+        s_held = 20 * min(1.0, held / 0.5)
+        smooth = b_ti >= 0.08 and release_s >= 0.3 and drop < 3.0
+        s_rel = 0 if b_ti < 0.08 else (20 if smooth else 10 if release_s >= 0.15 else 4)
+        s_bite = 20 * max(0.0, 1 - us / 1.5)
+        s_lock = 0 if lock else 10
+        score = int(round(s_ti + s_held + s_rel + s_bite + s_lock))
+        # margin: the front bit and lateral grip was not used up
+        margin = 0
+        if us < 0.2 and not lock and fsa[ti:end].max(initial=0) < 7 and lat < 0.85 * max_lat and lat > 0.2:
+            margin = int(min(10, round(v * ((max_lat / lat) ** 0.5 - 1) / 5) * 5))
+        if b_ti < 0.08:
+            verdict = "no_brake"
+        elif lock:
+            verdict = "lock"
+        elif us >= 0.3:
+            verdict = "understeer"
+        elif not smooth:
+            verdict = "abrupt"
+        else:
+            verdict = "good"
+        out.append({"t": round(float(tt), 2), "pos": round(float(pos[ti]), 5), "kind": c["kind"],
+                    "speed": int(v), "brake_before": round(b_before, 2), "brake_turnin": round(b_ti, 2),
+                    "held_s": round(held, 2), "release_s": round(release_s, 2), "drop": round(drop, 1),
+                    "lock": lock, "understeer_s": round(us, 2), "lat_g": round(lat, 2), "max_angle": round(beta, 0),
+                    "score": score, "margin": margin, "verdict": verdict})
     return out
