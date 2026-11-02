@@ -213,7 +213,8 @@ footer { font-size: 12px; color: var(--muted); }
 .hud .read { display: flex; align-items: baseline; gap: 3px; white-space: nowrap; }
 .hud .read b { font: 600 21px var(--display); line-height: 1; font-variant-numeric: tabular-nums; }
 .hud .read small { font: 10.5px var(--mono); color: var(--muted); }
-.gauges { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; white-space: nowrap; gap: 8px; align-items: end; }
+.gauges { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); white-space: nowrap; gap: 6px 10px; align-items: end; }
+.gauge > span:first-child { overflow: hidden; text-overflow: ellipsis; }
 .gauge { display: flex; flex-direction: column; gap: 3px; font: 10px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; min-width: 0; }
 .gauge .g { height: 8px; background: var(--hair); border-radius: 3px; overflow: hidden; position: relative; }
 .gauge .g i { position: absolute; top: 0; bottom: 0; left: 0; width: 0; }
