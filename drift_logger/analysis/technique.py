@@ -37,6 +37,16 @@ def handbrake(df, t0):
     return bool(len(w) and w.handbrake_on.sum() >= 3)
 
 
+def rotation_onset(df, t0, below=4.0, limit=2.5):
+    """Time the rear started to step out: walk back from the drift start while the slip angle
+    is still above a few degrees."""
+    w = window(df, t0 - limit, t0)
+    if not len(w):
+        return t0
+    calm = w[w.beta.abs() <= below]
+    return float(calm.time_s.iloc[-1]) if len(calm) else float(w.time_s.iloc[0])
+
+
 def initiation(df, d, prev):
     """Flags for every technique seen just before the drift starts, plus the main one."""
     t0, direction = d["t0"], d["dir"]
@@ -52,7 +62,11 @@ def initiation(df, d, prev):
     flags["handbrake"] = handbrake(df, t0)
     flags["downshift"] = bool("ds_lock" in df and window(df, t0 - 1.5, t0 + 0.2).ds_lock.any())
     flags["clutch"] = bool((window(df, t0 - 1.0, t0 + 0.3).clutch < 0.5).any())
-    brk = window(df, t0 - 1.2, t0 + 0.2)
+    # braking initiation: the car is braked, the brake is released, and the rear starts to
+    # rotate within about a second (brake drift). The angle only reaches the drift threshold
+    # later, so look back from where the rotation starts (slip angle above 4 deg).
+    onset = rotation_onset(df, t0)
+    brk = window(df, onset - 1.0, t0 + 0.2)
     flags["brake"] = bool(brk.brake.max() > 0.25) if len(brk) else False
     flags["trail_brake"] = bool(flags["brake"] and ((brk.brake > 0.1) & (brk.steer_deg.abs() > 30)).any())
     recent = window(df, t0 - 0.35, t0 + 0.05).throttle
