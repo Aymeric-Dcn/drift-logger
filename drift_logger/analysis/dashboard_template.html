@@ -170,6 +170,7 @@ th { font-family: var(--mono); font-weight: 500; font-size: 10.5px; letter-spaci
 th:first-child, td:first-child { text-align: left; }
 td { padding: 7px 8px; border-bottom: 1px solid var(--hair); text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 td.l, th.l { text-align: left; }
+td.wrap { white-space: normal; min-width: 220px; }
 tr.hov:hover td { background: var(--accent-wash); }
 th button.sort { font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; white-space: nowrap; }
 th button.sort:hover { color: var(--ink); }
@@ -399,6 +400,10 @@ footer { font-size: 12px; color: var(--muted); }
       <div class="session-meta" id="adv-car"></div>
       <div class="kpis" id="adv-kpis"></div>
     </section>
+    <section class="panel"><div class="panel-head"><h2 data-i18n="advTB"></h2><span class="note" data-i18n="advTBNote"></span></div>
+      <div class="tiles" id="tb-tiles"></div>
+      <div class="two"><div><div class="map-box" id="tb-chart"></div><div class="legend" id="tb-legend"></div></div><ul class="insights" id="tb-ins"></ul></div>
+      <div class="table-scroll"><table id="tb-table"></table></div></section>
     <section class="panel"><div class="panel-head"><h2 data-i18n="advUS"></h2><span class="note" data-i18n="advUSNote"></span></div>
       <div class="tiles" id="us-tiles"></div>
       <div class="two"><div><div class="map-box" id="us-chart"></div><div class="legend" id="us-legend"></div></div><ul class="insights" id="us-ins"></ul></div>
@@ -503,6 +508,20 @@ footer { font-size: 12px; color: var(--muted); }
       advStarts: "Départs de glisse", advStartsNote: "Une tentative = une glisse lancée ou un départ avorté",
       advDrifts: "La physique de chaque glisse", advDriftsNote: "Patinage AR : de combien les roues arrière tournent plus vite que la voiture avance. Vitesse : km/h gagnés (+) ou perdus (−) par seconde de glisse",
       advHT: "Talon-pointe", advHTNote: "Chaque rétrogradage : coup de gaz pendant le freinage, frein tenu, et régime au moment où l'embrayage reprend comparé au régime idéal du nouveau rapport",
+      advTB: "Freinage dégressif", advTBNote: "Chaque entrée d'épingle ou de virage serré : frein au moment de braquer, tenu en tournant, relâché progressivement, et est-ce que l'avant a mordu",
+      tb: { none: "Pas d'épingle ni de virage serré dans cette session.", tScore: "note de freinage dégressif", tBraked: "entrées avec du frein au moment de braquer", tBite: "entrées où l'avant a mordu",
+        tLimit: g => `entrées à la limite d'adhérence (≥ 85 % de tes ${g} g)`, chart: "Dosage du frein et rotation", xAxis: "frein au moment de braquer", brakeAt: "frein au braquage",
+        legBand: "dosage conseillé (15–35 %)", yes: "oui",
+        verdict: { good: "ça mord", understeer: "l'avant n'a pas mordu", abrupt: "relâché d'un coup", lock: "roues avant bloquées", no_brake: "pas de frein en tournant" },
+        advice: e => e.verdict === "good" ? (e.margin > 0 ? `+${e.margin} km/h possibles` : "à la limite, garde ce dosage") :
+          e.verdict === "no_brake" ? "garde 15–35 % de frein en braquant" : e.verdict === "abrupt" ? "relâche sur 0,5 s au lieu d'un coup" :
+          e.verdict === "lock" ? "moins de pression au braquage" : (e.brake_turnin > .35 ? "trop vite pour ce frein : entre un peu moins vite" : "plus de frein au moment de braquer"),
+        insDose: (a, n, b, m, v) => `Avec 15 à 35 % de frein au braquage, l'avant mord ${a} fois sur ${n}. Au-delà de 35 %, ${b} fois sur ${m} : tu y arrives à ${v} km/h en moyenne, et l'avant sature.`,
+        insNone: (n, m) => `${n} entrées sur ${m} sans frein au moment de braquer : la voiture n'a rien pour pivoter, et en descente elle part tout droit.`,
+        insAbrupt: n => `${n} fois tu relâches le frein d'un coup en braquant : le poids repart sur l'arrière d'un seul coup. Relâche sur une demi-seconde.`,
+        insRoom: s => `Marge pour entrer plus vite : ${s}.`,
+        insNoRoom: (a, b) => `Entrer plus vite ? Sur tes entrées qui mordent, tu tiens déjà ${a} g de G latéral pour ${b} g au maximum dans ce run : tu es à la limite. Gagne en régularité avant de gagner en vitesse.`,
+        cols: ["Virage", "Vitesse", "Frein au braquage", "Tenu en tournant", "Relâché en", "L'avant mord ?", "Angle max", "Verdict", "Note"] },
       advUS: "Sous-virage", advUSNote: "Les pneus avant glissent nettement plus que les arrière alors que la voiture ne dérive pas : elle va tout droit plus que ton volant ne le demande",
       us: { none: "Pas de sous-virage notable dans cette session.", tTime: p => `en sous-virage (${p} % du run)`, tThr: "de ce temps avec l'accélérateur enfoncé",
         tRel: "après un freinage relâché avant de tourner", tSteer: "de volant en médiane pendant le sous-virage", chart: "Sous-virage par virage",
@@ -547,7 +566,7 @@ footer { font-size: 12px; color: var(--muted); }
       rkTitle: "Classement des sessions", rkAll: "Toutes", rkFav: "★ Favoris",
       rk: { rank: "Rang", ref: "référence", count: n => `${n} session${n > 1 ? "s" : ""} · clique une ligne pour l'ouvrir`, noFav: "Pas encore de favori : clique l'étoile d'une session.",
         legend: "Note /100 : 40 % glisses réussies, 40 % score moyen des glisses, 10 % chocs francs par km, 10 % sous-virage. Référence = ta meilleure note avec cette voiture sur cette route.",
-        cols: ["Note", "Date", "Voiture", "Route", "Sens", "Durée", "km", "Glisses", "Réussies", "Score moy.", "Angle max réussi", "Sous-virage", "Chocs/km"] },
+        cols: ["Note", "Date", "Voiture", "Route", "Sens", "Durée", "km", "Glisses", "Réussies", "Score moy.", "Angle max réussi", "Sous-virage", "Frein dégressif", "Chocs/km"] },
       angTitle: "Angles", angRate: "Réussite selon l'angle maximum atteint", angTop: "Tes plus grosses glisses", angOk: "Réussies", angAll: "Toutes",
       ang: { tMax: "angle max sur une glisse réussie", tAvg: "plus gros angle moyen réussi", tLong: "plus longue glisse réussie à 30° ou plus", tHigh: "de réussite au-delà de 50°",
         rate: "Réussite selon l'angle maximum", legOk: "réussies", legKo: "ratées", binTip: (a, b) => `Angle max entre ${a} et ${b}°`, okOf: (a, n) => `${a} réussies sur ${n}`,
@@ -625,6 +644,20 @@ footer { font-size: 12px; color: var(--muted); }
       advStarts: "Drift initiations", advStartsNote: "An attempt = a drift that started or an aborted initiation",
       advDrifts: "The physics of each drift", advDriftsNote: "Rear wheelspin: how much faster the rear wheels turn than the car moves. Speed: km/h gained (+) or lost (−) per second of drift",
       advHT: "Heel-and-toe", advHTNote: "Every downshift: throttle blip while braking, brake held, and revs when the clutch bites compared to the ideal revs for the new gear",
+      advTB: "Trail braking", advTBNote: "Every hairpin or tight-corner entry: brake when turning in, held while turning, released progressively, and did the front bite",
+      tb: { none: "No hairpin or tight corner in this session.", tScore: "trail-braking score", tBraked: "entries with brake when turning in", tBite: "entries where the front bit",
+        tLimit: g => `entries at the grip limit (≥ 85% of your ${g} g)`, chart: "Brake dosing and rotation", xAxis: "brake when turning in", brakeAt: "brake at turn-in",
+        legBand: "suggested dosing (15–35%)", yes: "yes",
+        verdict: { good: "it bites", understeer: "front didn't bite", abrupt: "released in one go", lock: "front wheels locked", no_brake: "no brake while turning" },
+        advice: e => e.verdict === "good" ? (e.margin > 0 ? `+${e.margin} km/h possible` : "at the limit, keep this dosing") :
+          e.verdict === "no_brake" ? "keep 15–35% brake as you turn in" : e.verdict === "abrupt" ? "release over 0.5 s instead of in one go" :
+          e.verdict === "lock" ? "less pressure at turn-in" : (e.brake_turnin > .35 ? "too fast for that brake: enter a little slower" : "more brake when turning in"),
+        insDose: (a, n, b, m, v) => `With 15 to 35% brake at turn-in, the front bites ${a} times out of ${n}. Above 35%, ${b} times out of ${m}: you arrive at ${v} km/h on average and the front saturates.`,
+        insNone: (n, m) => `${n} entries out of ${m} with no brake when turning in: nothing makes the car rotate, and downhill it runs straight on.`,
+        insAbrupt: n => `${n} times you release the brake in one go while turning: the weight swings back all at once. Release over half a second.`,
+        insRoom: s => `Room to enter faster: ${s}.`,
+        insNoRoom: (a, b) => `Enter faster? On the entries where the front bites you already hold ${a} g lateral, out of ${b} g max in this run: you are at the limit. Gain consistency before speed.`,
+        cols: ["Corner", "Speed", "Brake at turn-in", "Held while turning", "Released over", "Front bites?", "Max angle", "Verdict", "Score"] },
       advUS: "Understeer", advUSNote: "The front tyres slide clearly more than the rears while the car isn't drifting: it goes wider than your steering asks",
       us: { none: "No notable understeer in this session.", tTime: p => `understeering (${p}% of the run)`, tThr: "of that time with the throttle pressed",
         tRel: "right after releasing the brakes before turning in", tSteer: "median steering while understeering", chart: "Understeer per corner",
@@ -669,7 +702,7 @@ footer { font-size: 12px; color: var(--muted); }
       rkTitle: "Session ranking", rkAll: "All", rkFav: "★ Favourites",
       rk: { rank: "Rank", ref: "reference", count: n => `${n} session${n > 1 ? "s" : ""} · click a row to open it`, noFav: "No favourite yet: click a session's star.",
         legend: "Score /100: 40% successful drifts, 40% average drift score, 10% hard impacts per km, 10% understeer. Reference = your best score with this car on this road.",
-        cols: ["Score", "Date", "Car", "Road", "Direction", "Duration", "km", "Drifts", "Successful", "Avg score", "Max successful angle", "Understeer", "Impacts/km"] },
+        cols: ["Score", "Date", "Car", "Road", "Direction", "Duration", "km", "Drifts", "Successful", "Avg score", "Max successful angle", "Understeer", "Trail braking", "Impacts/km"] },
       angTitle: "Angles", angRate: "Success by maximum angle reached", angTop: "Your biggest drifts", angOk: "Successful", angAll: "All",
       ang: { tMax: "max angle on a successful drift", tAvg: "biggest successful average angle", tLong: "longest successful drift at 30° or more", tHigh: "success above 50°",
         rate: "Success by maximum angle", legOk: "successful", legKo: "failed", binTip: (a, b) => `Max angle between ${a} and ${b}°`, okOf: (a, n) => `${a} successful out of ${n}`,
@@ -748,9 +781,9 @@ footer { font-size: 12px; color: var(--muted); }
     let list = filtered().slice();
     if (state.favOnly) list = list.filter(s => isFav(s.id));
     const cur = state.rsort || { k: "note", dir: -1 };
-    const keys = ["note", "date", "car", "track", "dir", "duration", "km", "drifts", "clean", "score", "angle", "us", "hits"];
+    const keys = ["note", "date", "car", "track", "dir", "duration", "km", "drifts", "clean", "score", "angle", "us", "tb", "hits"];
     const val = (s, k) => ({ note: s.rate.r, date: s.id, car: prettyCar(s.car), track: prettyTrack(s.track), dir: s.dir, duration: s.duration_s, km: s.distance_km, drifts: s.drifts,
-      clean: s.clean_pct, score: s.avg_score, angle: bestAngle(s.id) ?? -1, us: s.understeer_pct ?? 999, hits: (s.impacts_heavy ?? 0) / Math.max(s.distance_km, .1) })[k];
+      clean: s.clean_pct, score: s.avg_score, angle: bestAngle(s.id) ?? -1, us: s.understeer_pct ?? 999, tb: s.trail_score ?? -1, hits: (s.impacts_heavy ?? 0) / Math.max(s.distance_km, .1) })[k];
     list.sort((a, b) => { const x = val(a, cur.k), y = val(b, cur.k); return (x < y ? -1 : x > y ? 1 : 0) * cur.dir; });
     const byNote = filtered().slice().sort((a, b) => b.rate.r - a.rate.r).map(s => s.id);
     $("rk-count").textContent = R.count(list.length);
@@ -758,9 +791,9 @@ footer { font-size: 12px; color: var(--muted); }
       `<tr class="hov" data-open="${s.id}" ${s.id === state.session ? 'aria-current="true"' : ""}><td>${starBtn(s.id)}</td><td class="mono">${byNote.indexOf(s.id) + 1}</td>
         <td>${tierChip(s)}${s.isRef ? ` <span class="chip">${R.ref}</span>` : ""}</td><td class="l mono">${shortDate(s.date)}</td><td class="l">${prettyCar(s.car)}</td>
         <td class="l">${prettyTrack(s.track).split(" · ")[0]}</td><td class="l">${L().dirName[s.dir]}</td><td>${fmt(s.duration_s / 60, 1)} min</td><td>${fmt(s.distance_km, 1)}</td><td>${s.drifts}</td>
-        <td>${pct(s.clean_pct)}</td><td>${fmt(s.avg_score)}</td><td>${bestAngle(s.id) !== null ? fmt(bestAngle(s.id)) + "°" : "–"}</td><td>${s.understeer_pct !== undefined ? pct(s.understeer_pct) : "–"}</td>
+        <td>${pct(s.clean_pct)}</td><td>${fmt(s.avg_score)}</td><td>${bestAngle(s.id) !== null ? fmt(bestAngle(s.id)) + "°" : "–"}</td><td>${s.understeer_pct !== undefined ? pct(s.understeer_pct) : "–"}</td><td>${s.trail_score !== undefined && s.trail_score !== null ? fmt(s.trail_score) : "–"}</td>
         <td>${fmt((s.impacts_heavy ?? 0) / Math.max(s.distance_km, .1), 1)}</td></tr>`).join("") + "</tbody>";
-    if (!list.length) $("rk-table").innerHTML += `<tbody><tr><td colspan="15" class="l note">${state.favOnly ? R.noFav : L().noSession}</td></tr></tbody>`;
+    if (!list.length) $("rk-table").innerHTML += `<tbody><tr><td colspan="16" class="l note">${state.favOnly ? R.noFav : L().noSession}</td></tr></tbody>`;
     $("rk-table").querySelectorAll("button.sort").forEach(b => b.addEventListener("click", () => {
       const k = b.dataset.k; state.rsort = { k, dir: cur.k === k ? -cur.dir : (["car", "track", "dir"].includes(k) ? 1 : -1) }; renderRanking();
     }));
@@ -1607,6 +1640,7 @@ footer { font-size: 12px; color: var(--muted); }
     renderPhysTable(dr);
     renderHeelToe(ses);
     renderUndersteer(ses);
+    renderTrail(ses);
   }
 
   function renderPowerChart(spec, dr, ab) {
@@ -1709,6 +1743,64 @@ footer { font-size: 12px; color: var(--muted); }
     const abLow = ab.filter(a => a.pw !== null && a.pw < 80).length;
     if (ab.length) ins.push(A.insAb(ab.length, abLow));
     $("adv-starts-ins").innerHTML = ins.map(i => `<li><span>${i}</span></li>`).join("");
+  }
+
+  function renderTrail(ses) {
+    const B = L().tb, list = ses.trail, s = history.find(x => x.id === state.session);
+    ["tb-tiles", "tb-chart", "tb-legend", "tb-ins", "tb-table"].forEach(i => { $(i).innerHTML = ""; });
+    if (!list) { $("tb-tiles").innerHTML = `<p class="note">${L().rp.rerun}</p>`; return; }
+    if (!list.length) { $("tb-tiles").innerHTML = `<p class="note">${B.none}</p>`; return; }
+    const braked = list.filter(e => e.brake_turnin >= .08), bite = list.filter(e => e.understeer_s < .3 && !e.lock);
+    const maxLat = s.gforce ? s.gforce.max_lat : null;
+    const atLimit = maxLat ? list.filter(e => e.lat_g >= .85 * maxLat) : [];
+    const prev = history.filter(x => x.id < s.id && x.track === s.track && x.car === s.car && x.trail_score !== undefined && x.trail_score !== null).pop();
+    const delta = prev ? `<span class="delta ${s.trail_score >= prev.trail_score ? "up" : "down"}">${s.trail_score >= prev.trail_score ? "▲" : "▼"} ${fmt(Math.abs(s.trail_score - prev.trail_score))} ${L().vsPrev}</span>` : "";
+    $("tb-tiles").innerHTML = [
+      [`${fmt(s.trail_score)}<small>/100</small>`, B.tScore, delta],
+      [`${braked.length}/${list.length}`, B.tBraked, ""],
+      [`${bite.length}/${list.length}`, B.tBite, ""],
+      [maxLat ? `${atLimit.length}/${list.length}` : "–", B.tLimit(maxLat ? fmt(maxLat, 2) : "–"), ""],
+    ].map(([v, l, d]) => `<div class="tile"><span class="v">${v}</span><span class="l">${l}</span>${d}</div>`).join("");
+
+    // dosage chart: brake at turn-in vs rotation reached, coloured by what the front did
+    const VC = { good: "var(--good-line)", understeer: "var(--serious)", abrupt: "var(--warn)", lock: "var(--crit)", no_brake: "var(--a0)" };
+    const W = 520, H = 270, l = 46, r = 14, t = 12, b = 34;
+    const X = v => l + Math.min(v, 1) * (W - l - r), Y = v => t + (1 - Math.min(v, 90) / 90) * (H - t - b);
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": B.chart }, $("tb-chart"));
+    el("rect", { x: X(.15), width: X(.35) - X(.15), y: t, height: H - t - b, fill: "var(--good-line)", "fill-opacity": .1 }, svg);
+    [0, 30, 60, 90].forEach(v => { el("line", { x1: l, x2: W - r, y1: Y(v), y2: Y(v), stroke: v ? "var(--hair)" : "var(--axis)" }, svg); txt(svg, l - 6, Y(v) + 4, v + "°", { "text-anchor": "end" }); });
+    [0, .2, .4, .6, .8, 1].forEach(v => txt(svg, X(v), H - b + 16, pct(v * 100), { "text-anchor": "middle" }));
+    txt(svg, W - r, H - 4, B.xAxis, { "text-anchor": "end" });
+    list.forEach(e => {
+      const g = el("g", {}, svg), cx = X(e.brake_turnin), cy = Y(e.max_angle);
+      el("circle", { cx, cy, r: 5.5, fill: VC[e.verdict], stroke: "var(--surface)", "stroke-width": 1.5 }, g);
+      el("circle", { cx, cy, r: 11, fill: "transparent" }, g);
+      g.addEventListener("mousemove", ev => showTip(`<b>${e.corner ? L().C + e.corner : "–"}</b> · ${fmt(e.speed)} km/h<br>${B.brakeAt} ${pct(e.brake_turnin * 100)} · ${fmt(e.max_angle)}°<br>${B.verdict[e.verdict]}`, ev));
+      g.addEventListener("mouseleave", hideTip);
+    });
+    $("tb-legend").innerHTML = `<span class="ramp"><i style="background:var(--good-line);opacity:.35;height:10px"></i>${B.legBand}</span>` +
+      Object.keys(VC).map(k => `<span class="sym"><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="${VC[k]}"/></svg>${B.verdict[k]}</span>`).join("");
+
+    // insights
+    const ins = [], avg = (a, k) => a.reduce((x, e) => x + e[k], 0) / a.length;
+    const soft = braked.filter(e => e.brake_turnin <= .35), hard = braked.filter(e => e.brake_turnin > .35);
+    if (soft.length >= 2 && hard.length >= 2) ins.push(B.insDose(soft.filter(e => e.understeer_s < .3).length, soft.length, hard.filter(e => e.understeer_s < .3).length, hard.length, fmt(avg(hard, "speed"))));
+    const none = list.filter(e => e.brake_turnin < .08);
+    if (none.length) ins.push(B.insNone(none.length, list.length));
+    const ab = list.filter(e => e.verdict === "abrupt");
+    if (ab.length) ins.push(B.insAbrupt(ab.length));
+    const room = list.filter(e => e.margin > 0);
+    if (room.length) ins.push(B.insRoom(room.map(e => `${e.corner ? L().C + e.corner : "–"} (+${e.margin} km/h)`).join(", ")));
+    else if (maxLat && bite.length) ins.push(B.insNoRoom(fmt(avg(bite, "lat_g"), 2), fmt(maxLat, 2)));
+    $("tb-ins").innerHTML = ins.map(i => `<li><span>${i}</span></li>`).join("");
+
+    $("tb-table").innerHTML = `<thead><tr><th></th>${B.cols.map((h, i) => `<th${i === 7 ? ' class="l"' : ""}>${h}</th>`).join("")}</tr></thead><tbody>` + list.map(e =>
+      `<tr><td><button class="btn mini" data-t="${e.t}" title="${L().rp.playDrift}" aria-label="${L().rp.playDrift}">▶</button></td>
+        <td>${e.corner ? L().C + e.corner : "–"}</td><td>${fmt(e.speed)} km/h</td><td>${pct(e.brake_turnin * 100)}</td><td>${fmt(e.held_s, 1)} s</td>
+        <td>${e.brake_turnin >= .08 ? fmt(e.release_s, 1) + " s" : "–"}</td><td>${e.understeer_s >= .3 ? `<span style="color:var(--serious)">${fmt(e.understeer_s, 1)} s</span>` : B.yes}</td>
+        <td>${fmt(e.max_angle)}°</td><td class="l wrap"><span class="status"><span class="dot" style="background:${VC[e.verdict]}"></span>${B.verdict[e.verdict]}</span><br><span class="muted">${B.advice(e)}</span></td>
+        <td><span class="score">${e.score}</span></td></tr>`).join("") + "</tbody>";
+    $("tb-table").querySelectorAll("[data-t]").forEach(b => b.addEventListener("click", () => playDrift(state.session, +b.dataset.t - 1)));
   }
 
   function renderUndersteer(ses) {
