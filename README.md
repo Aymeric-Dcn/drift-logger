@@ -18,7 +18,7 @@ An in-game app records the car's state about 90 times per second. A Python scrip
 | Foot off while drifting | throttle below 5% for more than 0.15 s during a drift |
 | Rear lock | engine speed collapsing below 1,500 rpm while in gear (engine braking locks the rear) |
 | Late counter-steer | more than 0.5 s between the rear stepping out (15°) and opposite lock |
-| Throttle stabs | full throttle to foot off, or back, in under 0.35 s |
+| Throttle stabs | full throttle to foot off, or back, in under 0.35 s; the lift-off that starts a drift is not counted |
 | Throttle use | share of drift time spent off / low / modulated (40–90%) / flat out |
 
 Each drift is also broken down by how it was started (transition, feint, clutch kick, braking, lift-off, power over), how it was held and how it ended. A light touch on exit (under 10 km/h lost) still counts as a success. Every pass through every corner is compared: success rate per corner and per technique, entry speed and braking point of successful vs failed passes, dominant reflex, and the most likely cause of each failure (too fast on entry, foot off, rear lock, late counter-steer, too much angle, line).

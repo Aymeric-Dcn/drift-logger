@@ -18,7 +18,7 @@ Une appli dans le jeu enregistre l'état de la voiture environ 90 fois par secon
 | Pied levé en glisse | accélérateur sous 5 % pendant plus de 0,15 s en glisse |
 | Arrière bloqué | régime qui tombe sous 1 500 tr/min en prise (le frein moteur bloque l'arrière) |
 | Contre-braquage tardif | plus de 0,5 s entre le départ de l'arrière (15°) et le contre-braquage |
-| À-coups d'accélérateur | passage du plein gaz au pied levé, ou l'inverse, en moins de 0,35 s |
+| À-coups d'accélérateur | passage du plein gaz au pied levé, ou l'inverse, en moins de 0,35 s ; le lever de pied qui lance une glisse n'est pas compté |
 | Dosage de l'accélérateur | part du temps en glisse pied levé / bas / dosé (40–90 %) / à fond |
 
 Chaque glisse est aussi décomposée : comment elle a été lancée (enchaînement, appel-contre-appel, clutch kick, freinage, lever de pied, gaz), comment elle a été tenue, et comment elle s'est terminée. Un contact léger en sortie (moins de 10 km/h perdus) compte comme une réussite. Chaque passage dans chaque virage est comparé : réussite par virage et par technique, vitesse d'entrée et point de freinage des passages réussis et ratés, réflexe dominant, et cause probable de chaque raté (entrée trop rapide, pied levé, arrière bloqué, contre-braquage tardif, trop d'angle, placement).

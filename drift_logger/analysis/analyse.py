@@ -45,6 +45,8 @@ LIFT_THR = 0.05           # throttle below this = foot off
 LOCK_RPM = 1500           # rpm collapse in gear = rear wheels locked
 CS_ONSET = 15.0           # deg: rear stepping out, start of counter-steer timing
 PUMP_WINDOW = 0.35        # s: full-on <-> full-off within this = a throttle stab
+LIFT_INIT_BEFORE = 1.0    # s: stabs this long before a lift-initiated drift starts ...
+LIFT_INIT_AFTER = 0.6     # s: ... until this long after are part of the lift-off
 CORNER_RADIUS = 90.0      # m: max path radius to count as a corner
 CORNER_MIN_LEN = 12.0     # m
 REF_MARGIN = 0.05         # share of road a new session must add to become the corner reference
@@ -198,6 +200,20 @@ def throttle_stabs(df):
     return out
 
 
+def mark_lift_stabs(stabs, drifts):
+    """A lift-off that starts a drift (and the throttle coming back right after) is
+    technique, not a twitchy foot: flag those stabs so they are not counted."""
+    for d in drifts:
+        if not d.get("flags", {}).get("lift"):
+            continue
+        for p in stabs:
+            if d["t0"] - LIFT_INIT_BEFORE <= p["t"] <= d["t0"] + LIFT_INIT_AFTER:
+                p["init"] = True
+    for d in drifts:
+        d["stabs"] = sum(1 for p in stabs if d["t0"] <= p["t"] <= d["t1"] and not p.get("init"))
+        d["score"] = technique.score(d)
+
+
 def countersteer_delays(df):
     """Time between the rear stepping out (|slip| > 15 deg) and opposite lock."""
     b, s, t, v = df.beta.values, df.steer_deg.values, df.time_s.values, df.speed_kmh.values
@@ -324,6 +340,7 @@ def summarize(sid, meta, df, ev, dr, cs, stabs):
         techs[d["technique"]] = techs.get(d["technique"], 0) + 1
     bands = {name: round(float(((dd.throttle >= lo) & (dd.throttle < hi)).mean() * 100), 1) if len(dd) else None
              for name, lo, hi in THROTTLE_BANDS}
+    stabs = [p for p in stabs if not p.get("init")]
     n_stab_drift = sum(1 for p in stabs if p["drift"])
     return {
         "id": sid, "car": meta.get("car", "?"), "track": meta.get("track", "?"),
@@ -485,6 +502,7 @@ def analyse_file(path):
     stabs = throttle_stabs(df)
     cs = countersteer_delays(df)
     dr = technique.analyse_drifts(df, find_drifts(df, stabs), ev, cs)
+    mark_lift_stabs(stabs, dr)
     physics.drift_physics(df, dr, spec)
     physics.contact_points(df, ev, track_edges.edges(meta.get("track", "")))
     ab = physics.aborted(df, dr, spec)

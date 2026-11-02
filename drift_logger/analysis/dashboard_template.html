@@ -458,7 +458,7 @@ footer { font-size: 12px; color: var(--muted); }
       foot: g => `Mis à jour le ${g}. Données : appli Drift Logger, environ 90 mesures par seconde. Angle de dérive = angle entre l'axe de la voiture et sa trajectoire. Une glisse est réussie si elle se termine sans choc, ou avec un contact léger en sortie (moins de 10 km/h perdus).`,
       meta: (min, km, d, cov) => `${min} min · ${km} km · ${d} glisses · ${cov} % de la route`,
       kpi: { clean_pct: "glisses réussies", avg_score: "score moyen des glisses", lift_pct: "du temps en glisse, pied levé", stabs_per_min: "à-coups d'accélérateur / min", impacts_heavy: "chocs francs", spins: "quasi tête-à-queue" },
-      impactsSplit: (g, d) => `${g} en grip · ${d} en glisse`, vsPrev: "vs session préc.", firstHere: "première session ici",
+      impactsSplit: (g, d) => `${g} en grip · ${d} en glisse`, vsPrev: "vs", firstHere: "première session ici",
       prio: "Priorité n° 1", nextEx: "Exercice pour la prochaine session", target: "Objectif", issuesT: "Ce qui coince", older: "Conseils précédents",
       coachThis: "Conseils de cette session", coachLast: d => "Derniers conseils · " + d, noCoach: "Pas encore de conseils. Après ton prochain run, demande l'analyse.",
       angle: "Angle de dérive", grip: "grip", deg60: "60° et +", impact: "Choc", spin: "Quasi tête-à-queue", lift: "Pied levé en glisse", lock: "Arrière bloqué",
@@ -476,7 +476,7 @@ footer { font-size: 12px; color: var(--muted); }
       agg: ["Sessions", "km", "Glisses", "Réussies", "Angle moy.", "Chocs francs/km"],
       bands: { off: "pied levé (0–5 %)", low: "bas (5–40 %)", mid: "dosé (40–90 %)", full: "à fond (90–100 %)" },
       stabsDrift: "à-coups plein gaz ↔ pied levé par minute de glisse", stabsGrip: "par minute hors glisse, pour comparer",
-      stabsHint: "Un à-coup = passer de plus de 85 % à moins de 10 % (ou l'inverse) en moins de 0,35 s.",
+      stabsHint: "Un à-coup = passer de plus de 85 % à moins de 10 % (ou l'inverse) en moins de 0,35 s. Le lever de pied qui lance une glisse n'est pas compté. La comparaison se fait avec la session précédente, même voiture et même tracé.",
       tech: { transition: "enchaînement", handbrake: "frein à main", downshift: "rétrogradage", feint: "appel-contre-appel", clutch: "clutch kick", brake: "freinage", lift: "lever de pied", power: "gaz", other: "autre", grip: "passage en grip" },
       reason: { handbrake_late: "frein à main en pleine glisse", too_fast: "entrée trop rapide", rear_lock: "arrière bloqué", lift: "pied levé", late_cs: "contre-braquage tardif", over_angle: "trop d'angle", line: "placement", exit_wide: "sortie trop large", understeer: "sous-virage en grip" },
       cd: { rate: "réussite", entryOk: "entrée quand ça passe", entryKo: "entrée quand ça casse", brake: "début du freinage", angle: "angle moyen réussi", before: "m avant",
@@ -594,7 +594,7 @@ footer { font-size: 12px; color: var(--muted); }
       foot: g => `Updated ${g}. Data: Drift Logger app, about 90 samples per second. Slip angle = angle between the car's axis and its direction of travel. A drift counts as successful if it ends with no impact, or with a light touch on exit (under 10 km/h lost).`,
       meta: (min, km, d, cov) => `${min} min · ${km} km · ${d} drifts · ${cov}% of the road`,
       kpi: { clean_pct: "successful drifts", avg_score: "average drift score", lift_pct: "of drift time with foot off", stabs_per_min: "throttle stabs / min", impacts_heavy: "hard impacts", spins: "near spins" },
-      impactsSplit: (g, d) => `${g} in grip · ${d} drifting`, vsPrev: "vs prev. session", firstHere: "first session here",
+      impactsSplit: (g, d) => `${g} in grip · ${d} drifting`, vsPrev: "vs", firstHere: "first session here",
       prio: "Priority #1", nextEx: "Drill for next session", target: "Target", issuesT: "What's going wrong", older: "Earlier advice",
       coachThis: "Advice for this session", coachLast: d => "Latest advice · " + d, noCoach: "No advice yet. After your next run, ask for the analysis.",
       angle: "Slip angle", grip: "grip", deg60: "60° and up", impact: "Impact", spin: "Near spin", lift: "Foot off while drifting", lock: "Rear locked",
@@ -612,7 +612,7 @@ footer { font-size: 12px; color: var(--muted); }
       agg: ["Sessions", "km", "Drifts", "Successful", "Avg angle", "Hard impacts/km"],
       bands: { off: "foot off (0–5%)", low: "low (5–40%)", mid: "modulated (40–90%)", full: "flat out (90–100%)" },
       stabsDrift: "full-throttle ↔ foot-off stabs per minute of drifting", stabsGrip: "per minute in grip, for comparison",
-      stabsHint: "A stab = going from above 85% to below 10% (or back) in under 0.35 s.",
+      stabsHint: "A stab = going from above 85% to below 10% (or back) in under 0.35 s. The lift-off that starts a drift is not counted. Deltas compare with the previous session in the same car on the same layout.",
       tech: { transition: "transition", handbrake: "handbrake", downshift: "downshift", feint: "feint", clutch: "clutch kick", brake: "braking", lift: "lift-off", power: "power over", other: "other", grip: "grip pass" },
       reason: { handbrake_late: "handbrake mid-drift", too_fast: "too fast on entry", rear_lock: "rear lock", lift: "foot off", late_cs: "late counter-steer", over_angle: "too much angle", line: "line / placement", exit_wide: "ran wide on exit", understeer: "understeer in grip" },
       cd: { rate: "success", entryOk: "entry when it works", entryKo: "entry when it fails", brake: "braking starts", angle: "avg angle, successful", before: "m before",
@@ -853,6 +853,8 @@ footer { font-size: 12px; color: var(--muted); }
     { k: "impacts_heavy", unit: "", better: "down", sub: s => L().impactsSplit(s.impacts_grip, s.impacts_drift) },
     { k: "spins", unit: "", better: "down" },
   ];
+  // which session a delta compares against: same car, same layout, the one just before
+  const vsP = p => p ? `${L().vsPrev} ${p.date.slice(8, 10)}/${p.date.slice(5, 7)} ${p.date.slice(11)}` : L().vsPrev;
   const prevOf = s => history.filter(x => x.id < s.id && x.track === s.track && x.car === s.car).pop();
   function renderBand() {
     const s = history.find(x => x.id === state.session), meta = $("session-meta"), kp = $("kpis");
@@ -866,7 +868,7 @@ footer { font-size: 12px; color: var(--muted); }
       if (prev && prev[c.k] !== null && prev[c.k] !== undefined && v !== null) {
         const dv = v - prev[c.k], good = c.better === "up" ? dv > 0 : dv < 0;
         const cls = Math.abs(dv) < 0.05 ? "flat" : (good ? "up" : "down");
-        delta = `<span class="delta ${cls}">${dv > 0 ? "▲" : dv < 0 ? "▼" : "="} ${fmt(Math.abs(dv))}${c.unit} ${L().vsPrev}</span>`;
+        delta = `<span class="delta ${cls}">${dv > 0 ? "▲" : dv < 0 ? "▼" : "="} ${fmt(Math.abs(dv))}${c.unit} ${vsP(prev)}</span>`;
       } else if (!c.sub) delta = `<span class="delta flat">${L().firstHere}</span>`;
       if (c.sub) delta += `<span class="delta flat">${c.sub(s)}</span>`;
       const div = document.createElement("div"); div.className = "kpi";
@@ -1006,7 +1008,7 @@ footer { font-size: 12px; color: var(--muted); }
     const dlt = (v, p, better) => {
       if (p === null || p === undefined) return "";
       const dv = v - p, good = better === "up" ? dv > 0 : dv < 0, cls = Math.abs(dv) < 0.05 ? "flat" : good ? "up" : "down";
-      return `<span class="delta ${cls}">${dv > 0 ? "▲" : dv < 0 ? "▼" : "="} ${fmt(Math.abs(dv), 1)} ${L().vsPrev}</span>`;
+      return `<span class="delta ${cls}">${dv > 0 ? "▲" : dv < 0 ? "▼" : "="} ${fmt(Math.abs(dv), 1)} ${vsP(prev)}</span>`;
     };
     box.innerHTML = `<div><div class="bandbar" role="img" aria-label="${L().throttleTitle}">${keys.map((k, i) => `<span style="width:${b[k]}%;background:var(${cols[i]})"></span>`).join("")}</div>
       <div class="bandlegend">${keys.map((k, i) => `<div><b>${pct(b[k])}</b><span><i style="background:var(${cols[i]})"></i>${L().bands[k]}</span>${k === "off" || k === "mid" ? dlt(b[k], prev && prev.thr_bands ? prev.thr_bands[k] : null, k === "mid" ? "up" : "down") : ""}</div>`).join("")}</div></div>
@@ -1754,7 +1756,7 @@ footer { font-size: 12px; color: var(--muted); }
     const maxLat = s.gforce ? s.gforce.max_lat : null;
     const atLimit = maxLat ? list.filter(e => e.lat_g >= .85 * maxLat) : [];
     const prev = history.filter(x => x.id < s.id && x.track === s.track && x.car === s.car && x.trail_score !== undefined && x.trail_score !== null).pop();
-    const delta = prev ? `<span class="delta ${s.trail_score >= prev.trail_score ? "up" : "down"}">${s.trail_score >= prev.trail_score ? "▲" : "▼"} ${fmt(Math.abs(s.trail_score - prev.trail_score))} ${L().vsPrev}</span>` : "";
+    const delta = prev ? `<span class="delta ${s.trail_score >= prev.trail_score ? "up" : "down"}">${s.trail_score >= prev.trail_score ? "▲" : "▼"} ${fmt(Math.abs(s.trail_score - prev.trail_score))} ${vsP(prev)}</span>` : "";
     $("tb-tiles").innerHTML = [
       [`${fmt(s.trail_score)}<small>/100</small>`, B.tScore, delta],
       [`${braked.length}/${list.length}`, B.tBraked, ""],
@@ -1812,7 +1814,7 @@ footer { font-size: 12px; color: var(--muted); }
     const by = k => list.filter(u => u.kind === k), share = a => pct(100 * a.reduce((x, u) => x + dur(u), 0) / tot);
     const rel = list.filter(u => u.released), med = a => { const v = a.slice().sort((x, y) => x - y); return v.length ? v[Math.floor(v.length / 2)] : null; };
     const prev = history.filter(x => x.id < s.id && x.track === s.track && x.car === s.car && x.understeer_s !== undefined).pop();
-    const delta = prev ? `<span class="delta ${s.understeer_s < prev.understeer_s ? "up" : "down"}">${s.understeer_s < prev.understeer_s ? "▼" : "▲"} ${fmt(Math.abs(s.understeer_s - prev.understeer_s))} s ${L().vsPrev}</span>` : "";
+    const delta = prev ? `<span class="delta ${s.understeer_s < prev.understeer_s ? "up" : "down"}">${s.understeer_s < prev.understeer_s ? "▼" : "▲"} ${fmt(Math.abs(s.understeer_s - prev.understeer_s))} s ${vsP(prev)}</span>` : "";
     $("us-tiles").innerHTML = [
       [`${fmt(tot)} s`, U.tTime(fmt(s.understeer_pct)), delta],
       [share(by("throttle")), U.tThr, ""],
