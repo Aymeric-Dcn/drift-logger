@@ -188,7 +188,8 @@ footer { font-size: 12px; color: var(--muted); }
 .tier.ok { color: var(--tier-ok); background: var(--tier-ok-bg); } .tier.bad { color: var(--tier-bad); background: var(--tier-bad-bg); }
 .star { font-size: 17px; line-height: 1; background: none; border: 0; cursor: pointer; color: var(--muted); padding: 0 2px; }
 .star[aria-pressed="true"] { color: var(--tier-model); }
-#rk-table tr[data-open] { cursor: pointer; } #rk-table tr[aria-current="true"] td { background: var(--accent-wash); }
+#rk-table tr[data-open], #bc-table tr[data-play] { cursor: pointer; } #rk-table tr[aria-current="true"] td { background: var(--accent-wash); }
+.cd-rec { display: flex; gap: 8px; align-items: center; margin: 4px 0 10px; flex-wrap: wrap; }
 #rk-legend { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 
 /* replay */
@@ -288,6 +289,12 @@ footer { font-size: 12px; color: var(--muted); }
       <div id="rk-legend"></div>
       <span class="note" id="rk-count"></span>
       <div class="table-scroll"><table id="rk-table"></table></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2 data-i18n="bcTitle"></h2>
+        <div class="seg" role="group"><button id="bc-rec" data-i18n="bcRec"></button><button id="bc-top" data-i18n="bcTop"></button></div></div>
+      <span class="note" id="bc-count"></span>
+      <div class="table-scroll"><table id="bc-table"></table></div>
     </section>
   </div>
 
@@ -479,7 +486,7 @@ footer { font-size: 12px; color: var(--muted); }
       stabsHint: "Un à-coup = passer de plus de 85 % à moins de 10 % (ou l'inverse) en moins de 0,35 s. Le lever de pied qui lance une glisse n'est pas compté. La comparaison se fait avec la session précédente, même voiture et même tracé.",
       tech: { transition: "enchaînement", handbrake: "frein à main", downshift: "rétrogradage", feint: "appel-contre-appel", clutch: "clutch kick", brake: "freinage", lift: "lever de pied", power: "gaz", other: "autre", grip: "passage en grip" },
       reason: { handbrake_late: "frein à main en pleine glisse", too_fast: "entrée trop rapide", rear_lock: "arrière bloqué", lift: "pied levé", late_cs: "contre-braquage tardif", over_angle: "trop d'angle", line: "placement", exit_wide: "sortie trop large", understeer: "sous-virage en grip" },
-      cd: { rate: "réussite", entryOk: "entrée quand ça passe", entryKo: "entrée quand ça casse", brake: "début du freinage", angle: "angle moyen réussi", before: "m avant",
+      cd: { record: "Record du virage", recAvg: "moy.", rate: "réussite", entryOk: "entrée quand ça passe", entryKo: "entrée quand ça casse", brake: "début du freinage", angle: "angle moyen réussi", before: "m avant",
         insights: "Ce que disent les données", byTech: "Par technique de lancement", vsTitle: "Réussis vs ratés", attempts: "Tous les passages", map: "Tes trajectoires dans ce virage",
         vsRows: ["Vitesse d'entrée", "Début du freinage", "Angle moyen", "Pied levé en glisse", "Score moyen"], ok: "Réussis", ko: "Ratés",
         cols: ["Session", "Lancement", "Entrée", "Freinage", "Angle", "Pied levé", "Score", "Résultat"], noBrake: "pas de frein",
@@ -564,6 +571,11 @@ footer { font-size: 12px; color: var(--muted); }
       dirLabel: "Sens", allDirs: "Montée et descente", dirName: { up: "montée", down: "descente", other: "autre" },
       tier: { model: "modèle", good: "bonne", ok: "moyenne", bad: "à revoir" }, favTip: "Ajouter aux favoris (gardés dans ce navigateur)",
       rkTitle: "Classement des sessions", rkAll: "Toutes", rkFav: "★ Favoris",
+      bcTitle: "Meilleurs passages", bcRec: "Record par virage", bcTop: "Top 30",
+      bc: { cols: ["Virage", "Route", "Score", "Angle moy.", "Angle max", "Durée", "Entrée", "Lancement", "Voiture", "Date", "Réussi"],
+        count: (n, rec) => rec ? `${n} virage${n > 1 ? "s" : ""} réussi${n > 1 ? "s" : ""} au moins une fois · clique une ligne pour revoir le passage` : `les ${n} meilleurs passages · clique une ligne pour revoir le passage`,
+        times: (k, n) => `${k} / ${n} session${n > 1 ? "s" : ""}`, none: "Aucune glisse réussie dans un virage avec ces filtres.",
+        legend: "Classé par score de glisse (à partir de 90, tous à égalité), puis par angle moyen × durée : à propreté égale, la glisse la plus grosse et la plus longue gagne. Une ligne par virage et par session." },
       rk: { rank: "Rang", ref: "référence", count: n => `${n} session${n > 1 ? "s" : ""} · clique une ligne pour l'ouvrir`, noFav: "Pas encore de favori : clique l'étoile d'une session.",
         legend: "Note /100 : 40 % glisses réussies, 40 % score moyen des glisses, 10 % chocs francs par km, 10 % sous-virage. Référence = ta meilleure note avec cette voiture sur cette route.",
         cols: ["Note", "Date", "Voiture", "Route", "Sens", "Durée", "km", "Glisses", "Réussies", "Score moy.", "Angle max réussi", "Sous-virage", "Frein dégressif", "Chocs/km"] },
@@ -615,7 +627,7 @@ footer { font-size: 12px; color: var(--muted); }
       stabsHint: "A stab = going from above 85% to below 10% (or back) in under 0.35 s. The lift-off that starts a drift is not counted. Deltas compare with the previous session in the same car on the same layout.",
       tech: { transition: "transition", handbrake: "handbrake", downshift: "downshift", feint: "feint", clutch: "clutch kick", brake: "braking", lift: "lift-off", power: "power over", other: "other", grip: "grip pass" },
       reason: { handbrake_late: "handbrake mid-drift", too_fast: "too fast on entry", rear_lock: "rear lock", lift: "foot off", late_cs: "late counter-steer", over_angle: "too much angle", line: "line / placement", exit_wide: "ran wide on exit", understeer: "understeer in grip" },
-      cd: { rate: "success", entryOk: "entry when it works", entryKo: "entry when it fails", brake: "braking starts", angle: "avg angle, successful", before: "m before",
+      cd: { record: "Corner record", recAvg: "avg", rate: "success", entryOk: "entry when it works", entryKo: "entry when it fails", brake: "braking starts", angle: "avg angle, successful", before: "m before",
         insights: "What the data says", byTech: "By initiation technique", vsTitle: "Successful vs failed", attempts: "Every pass", map: "Your lines through this corner",
         vsRows: ["Entry speed", "Braking starts", "Average angle", "Foot off while drifting", "Average score"], ok: "Successful", ko: "Failed",
         cols: ["Session", "Initiation", "Entry", "Braking", "Angle", "Foot off", "Score", "Result"], noBrake: "no brake",
@@ -700,6 +712,11 @@ footer { font-size: 12px; color: var(--muted); }
       dirLabel: "Direction", allDirs: "Uphill and downhill", dirName: { up: "uphill", down: "downhill", other: "other" },
       tier: { model: "model", good: "good", ok: "average", bad: "to review" }, favTip: "Add to favourites (kept in this browser)",
       rkTitle: "Session ranking", rkAll: "All", rkFav: "★ Favourites",
+      bcTitle: "Best corner passes", bcRec: "Record per corner", bcTop: "Top 30",
+      bc: { cols: ["Corner", "Road", "Score", "Avg angle", "Max angle", "Duration", "Entry", "Initiation", "Car", "Date", "Drifted"],
+        count: (n, rec) => rec ? `${n} corner${n > 1 ? "s" : ""} drifted cleanly at least once · click a row to replay the pass` : `the ${n} best passes · click a row to replay the pass`,
+        times: (k, n) => `${k} / ${n} session${n > 1 ? "s" : ""}`, none: "No successful drift in a corner with these filters.",
+        legend: "Ranked by drift score (90 and above all tie), then by average angle × duration: at equal cleanliness the bigger, longer drift wins. One row per corner and session." },
       rk: { rank: "Rank", ref: "reference", count: n => `${n} session${n > 1 ? "s" : ""} · click a row to open it`, noFav: "No favourite yet: click a session's star.",
         legend: "Score /100: 40% successful drifts, 40% average drift score, 10% hard impacts per km, 10% understeer. Reference = your best score with this car on this road.",
         cols: ["Score", "Date", "Car", "Road", "Direction", "Duration", "km", "Drifts", "Successful", "Avg score", "Max successful angle", "Understeer", "Trail braking", "Impacts/km"] },
@@ -804,6 +821,39 @@ footer { font-size: 12px; color: var(--muted); }
     $("rk-table").querySelectorAll("[data-fav]").forEach(b => b.addEventListener("click", () => toggleFav(b.dataset.fav)));
     $("rk-all").setAttribute("aria-pressed", !state.favOnly); $("rk-fav").setAttribute("aria-pressed", !!state.favOnly);
     $("rk-legend").innerHTML = ["model", "good", "ok", "bad"].map(t => `<span class="tier ${t}">${L().tier[t]}</span>`).join("") + `<span class="note">${R.legend}</span>`;
+  }
+
+  /* how good a pass is: clean drifts (score 90+) tie on score, then the bigger and longer one wins */
+  const passValue = d => [Math.min(d.score, 90), d.avg_angle * (d.t1 - d.t0)];
+  /* best corner passes: the best successful drift for each (session, corner), all time */
+  function renderBestCorners() {
+    const B = L().bc, rec = state.bcMode !== "top", ses = filtered();
+    const val = passValue;
+    const better = (a, b) => { const x = val(a), y = val(b); return x[0] !== y[0] ? x[0] > y[0] : x[1] > y[1]; };
+    const passes = {};
+    ses.forEach(h => { const s = D.sessions[h.id]; if (!s) return;
+      s.drifts.forEach(d => { if (!d.success || !d.corner) return; const k = `${h.id}|${d.corner}`;
+        const p = Object.assign({ sid: h.id, car: h.car, date: h.date, track: h.track }, d);
+        if (!passes[k] || better(p, passes[k])) passes[k] = p; }); });
+    let rows = Object.values(passes);
+    const drifted = {}; rows.forEach(p => { const k = `${p.track}|${p.corner}`; drifted[k] = (drifted[k] || 0) + 1; });
+    const nSes = t => ses.filter(h => h.track === t).length;
+    if (rec) {
+      const best = {}; rows.forEach(p => { const k = `${p.track}|${p.corner}`; if (!best[k] || better(p, best[k])) best[k] = p; });
+      rows = Object.values(best).sort((a, b) => a.track < b.track ? -1 : a.track > b.track ? 1 : a.corner - b.corner);
+    } else rows = rows.sort((a, b) => better(a, b) ? -1 : better(b, a) ? 1 : 0).slice(0, 30);
+    $("bc-rec").setAttribute("aria-pressed", rec); $("bc-top").setAttribute("aria-pressed", !rec);
+    $("bc-count").textContent = rows.length ? B.count(rows.length, rec) + " · " + B.legend : "";
+    if (!rows.length) { $("bc-table").innerHTML = `<tbody><tr><td class="l note">${B.none}</td></tr></tbody>`; return; }
+    const head = (rec ? [] : ["#"]).concat(B.cols);
+    $("bc-table").innerHTML = `<thead><tr>${head.map((h, i) => `<th${(rec ? [0, 1, 7, 8, 9] : [1, 2, 8, 9, 10]).includes(i) ? ' class="l"' : ""}>${h}</th>`).join("")}</tr></thead><tbody>` + rows.map((p, i) => {
+      const tr = D.tracks[p.track], c = tr && tr.corners[p.corner - 1];
+      return `<tr class="hov" data-play="${p.sid}|${p.t0}">${rec ? "" : `<td class="mono">${i + 1}</td>`}<td class="l"><b>${L().C}${p.corner}</b>${c ? " · " + cornerName(c) : ""}</td>
+        <td class="l">${prettyTrack(p.track)}</td><td><span class="score">${p.score}</span></td><td>${fmt(p.avg_angle)}°</td><td>${fmt(p.max_angle)}°</td>
+        <td>${fmt(p.t1 - p.t0, 1)} s</td><td>${fmt(p.entry)} km/h</td><td class="l"><span class="status"><span class="dot" style="background:${tcol(p.technique)}"></span>${L().tech[p.technique]}</span></td>
+        <td class="l">${prettyCar(p.car)}</td><td class="l mono">${shortDate(p.date)}</td><td>${B.times(drifted[`${p.track}|${p.corner}`], nSes(p.track))}</td></tr>`;
+    }).join("") + "</tbody>";
+    $("bc-table").querySelectorAll("tr[data-play]").forEach(r => r.addEventListener("click", () => { const [sid, t0] = r.dataset.play.split("|"); playDrift(sid, +t0); }));
   }
 
   /* ---------- filters & tabs ---------- */
@@ -1231,6 +1281,14 @@ footer { font-size: 12px; color: var(--muted); }
     const cd = L().cd;
     let html = `<div class="cd-head"><span class="big">${L().C}${c.id}</span><h2>${cornerName(c)} · ${fmt(Math.abs(c.turn))}°</h2>${st.treacherous ? `<span class="pill">${L().treacherous}</span>` : ""}<span class="note">${L().passes(st.attempts)}</span>${twinChips(c)}</div>` + twinLine(c);
     if (!st.attempts) { box.innerHTML = html + `<p class="note">${cd.empty}</p>`; return; }
+    // the record: best successful drift in this corner across the filtered sessions
+    let recd = null;
+    filtered().filter(h => h.track === tr.track).forEach(h => { const s = D.sessions[h.id]; if (!s) return;
+      s.drifts.forEach(d => { if (!d.success || d.corner !== c.id) return;
+        const v = passValue(d);
+        if (!recd || v[0] > recd.v[0] || (v[0] === recd.v[0] && v[1] > recd.v[1])) recd = Object.assign({ v, sid: h.id, car: h.car, date: h.date }, d); }); });
+    if (recd) html += `<p class="cd-rec"><button class="btn mini" data-rec="${recd.sid}|${recd.t0}" title="${L().rp.playDrift}" aria-label="${L().rp.playDrift}">▶</button>
+      <span><b>${cd.record}</b>${colon()}<span class="score">${recd.score}</span> · ${fmt(recd.avg_angle)}° ${cd.recAvg} · ${fmt(recd.t1 - recd.t0, 1)} s · ${L().tech[recd.technique]} · ${prettyCar(recd.car)} · ${shortDate(recd.date)}</span></p>`;
     html += `<div class="tiles">
       <div class="tile"><span class="v">${pct(st.rate)}</span><span class="l">${cd.rate}</span><span class="s">${st.success}/${st.attempts}</span></div>
       <div class="tile"><span class="v">${st.ok.entry !== null ? fmt(st.ok.entry) + " km/h" : "–"}</span><span class="l">${cd.entryOk}</span><span class="s">${cd.entryKo}${colon()}${st.ko.entry !== null ? fmt(st.ko.entry) + " km/h" : "–"}</span></div>
@@ -1248,6 +1306,7 @@ footer { font-size: 12px; color: var(--muted); }
     html += `<h3>${cd.attempts}</h3><div class="table-scroll"><table id="att-table"><thead><tr>${cd.cols.map((h, i) => `<th${i === 0 || i === 1 || i === 7 ? ' class="l"' : ""}>${h}</th>`).join("")}</tr></thead><tbody>` +
       att.map((a, i) => `<tr class="hov" data-i="${i}"><td class="l mono">${shortDate(history.find(x => x.id === a.sid).date)}</td><td class="l"><span class="status"><span class="dot" style="background:${tcol(a.technique)}"></span>${L().tech[a.technique]}</span></td><td>${fmt(a.entry)} km/h</td><td>${a.brake_dist !== null ? fmt(a.brake_dist) + " m" : cd.noBrake}</td><td>${a.kind === "drift" ? fmt(a.avg_angle) + "°" : "–"}</td><td>${a.lift_pct !== null ? pct(a.lift_pct) : "–"}</td><td><span class="score">${a.score}</span></td><td class="l">${outcomeCell(a.outcome, a.reasons)}</td></tr>`).join("") + `</tbody></table></div>`;
     box.innerHTML = html;
+    box.querySelectorAll("[data-rec]").forEach(b => b.addEventListener("click", () => { const [sid, t0] = b.dataset.rec.split("|"); playDrift(sid, +t0); }));
     renderCornerReplay(tr, c, att);
     box.querySelectorAll("#att-table tr.hov").forEach(r => {
       r.addEventListener("mouseenter", () => highlightPass(+r.dataset.i, true));
@@ -2030,14 +2089,14 @@ footer { font-size: 12px; color: var(--muted); }
     $(id).innerHTML = `<thead><tr><th>${key === "car" ? L().car : L().road}</th>${L().agg.map(x => `<th>${x}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody>`;
   }
 
-  function save() { try { localStorage.setItem("dl-prefs", JSON.stringify({ track: state.track, car: state.car, mode: state.mode, lang: state.lang, tab: state.tab, corner: state.corner, csort: state.csort, cam: state.cam, dir: state.dir })); } catch (e) {} }
+  function save() { try { localStorage.setItem("dl-prefs", JSON.stringify({ track: state.track, car: state.car, mode: state.mode, lang: state.lang, tab: state.tab, corner: state.corner, csort: state.csort, cam: state.cam, dir: state.dir, bcMode: state.bcMode })); } catch (e) {} }
   function renderAll() {
     stopAll();
     renderChrome();
     if (state.tab === "session") { renderBand(); renderCoach(); renderMap(); renderSessionCorners(); renderThrottle(); renderStrip(); renderDrifts(); if (sessionPlayer) sessionPlayer.redraw(); }
     if (state.tab === "corners") { renderCornerList(); renderCornerDetail(); }
     if (state.tab === "techniques") { renderTechniques(); renderAngles(); }
-    if (state.tab === "ranking") renderRanking();
+    if (state.tab === "ranking") { renderRanking(); renderBestCorners(); }
     if (state.tab === "advanced") renderAdvanced();
     if (state.tab === "progress") { renderEvo(); aggTable("by-car", "car", prettyCar); aggTable("by-track", "track", prettyTrack); }
   }
@@ -2045,6 +2104,8 @@ footer { font-size: 12px; color: var(--muted); }
   $("f-dir").addEventListener("change", e => { state.dir = e.target.value; state.track = "all"; state.session = null; state.corner = null; save(); renderAll(); });
   $("rk-all").addEventListener("click", () => { state.favOnly = false; renderRanking(); });
   $("rk-fav").addEventListener("click", () => { state.favOnly = true; renderRanking(); });
+  $("bc-rec").addEventListener("click", () => { state.bcMode = "rec"; save(); renderBestCorners(); });
+  $("bc-top").addEventListener("click", () => { state.bcMode = "top"; save(); renderBestCorners(); });
   document.addEventListener("click", e => { const b = e.target.closest("#session-meta [data-fav]"); if (b) toggleFav(b.dataset.fav); });
   $("f-track").addEventListener("change", e => { state.track = e.target.value; state.session = null; state.corner = null; save(); renderAll(); });
   $("f-car").addEventListener("change", e => { state.car = e.target.value; state.session = null; save(); renderAll(); });

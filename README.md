@@ -36,6 +36,8 @@ The road is drawn with its real edges, read from the track's AI line (`ai/fast_l
 
 Every session in one sortable table with a score out of 100 (40% successful drifts, 40% average drift score, 10% hard impacts per km, 10% understeer) and a level: model, good, average, to review. The best score for each car on each road is marked as the reference. Sessions can be starred as favourites (kept in the browser) and filtered by direction (uphill / downhill) like the rest of the dashboard.
 
+Below it, **best corner passes**: the record for each corner (the best successful drift ever there, with how many sessions managed it) or the top 30 passes overall. Drifts scoring 90 or more tie, and the bigger, longer one wins. Clicking a row replays that pass. Each corner's detail in the Corners tab also shows its record.
+
 ## Advanced tab
 
 Reads the car's power curve and weight from `content/cars/<car>/ui/ui_car.json` and explains why drifts live or die:

@@ -36,6 +36,8 @@ La route est dessinée avec ses vrais bords, lus dans la ligne IA de la piste (`
 
 Toutes les sessions dans un tableau triable, avec une note sur 100 (40 % glisses réussies, 40 % score moyen des glisses, 10 % chocs francs par km, 10 % sous-virage) et un niveau : modèle, bonne, moyenne, à revoir. La meilleure note pour chaque voiture sur chaque route est marquée comme référence. Les sessions peuvent être mises en favoris (gardés dans le navigateur) et filtrées par sens (montée / descente), comme le reste du dashboard.
 
+En dessous, les **meilleurs passages** : le record de chaque virage (la meilleure glisse réussie à cet endroit, avec le nombre de sessions qui l'ont réussi) ou le top 30 de tous les passages. Les glisses à 90 ou plus sont à égalité, et la plus grosse et la plus longue gagne. Un clic sur une ligne rejoue le passage. Le détail de chaque virage, dans l'onglet Virages, affiche aussi son record.
+
 ## Onglet Avancé
 
 Lit la courbe de puissance et le poids de la voiture dans `content/cars/<voiture>/ui/ui_car.json` et explique pourquoi une glisse tient ou meurt :
