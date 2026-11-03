@@ -1410,7 +1410,9 @@ footer { font-size: 12px; color: var(--muted); }
     // one quad per edge segment: robust where the inner edge folds in hairpins
     for (let i = 0; i < n - 1; i++) d += `M${L.x[i]} ${L.z[i]}L${L.x[i + 1]} ${L.z[i + 1]}L${Rr.x[i + 1]} ${Rr.z[i + 1]}L${Rr.x[i]} ${Rr.z[i]}Z`;
     el("path", { d, fill: "var(--road)", stroke: "var(--road)", "stroke-width": 1, "vector-effect": "non-scaling-stroke" }, g);
-    [L, Rr].forEach(side => el("polyline", { points: side.x.map((x, i) => x + "," + side.z[i]).join(" "), fill: "none", stroke: "var(--wall)", "stroke-width": 1.5, "vector-effect": "non-scaling-stroke", "stroke-linejoin": "round" }, g));
+    // estimated width (the track's AI line has none): dashed edges, so they don't read as walls
+    const dash = e.est ? { "stroke-dasharray": "6 5", opacity: .6 } : {};
+    [L, Rr].forEach(side => el("polyline", Object.assign({ points: side.x.map((x, i) => x + "," + side.z[i]).join(" "), fill: "none", stroke: "var(--wall)", "stroke-width": 1.5, "vector-effect": "non-scaling-stroke", "stroke-linejoin": "round" }, dash), g));
   }
 
   /* trail coloured by slip angle, in world metres */

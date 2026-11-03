@@ -30,7 +30,7 @@ The car is redrawn as a top-down rectangle: body, light window at the front, fro
 - **Session tab → Replay**: the whole run with a chase camera (following the road or fixed map), a mini-map, outlines of the car a moment earlier, and live speed, angle, gear, pedals and steering. Each drift in the table has a ▶ button, and clicking the telemetry traces moves the replay there.
 - **Corners tab → Replay the corner**: up to three passes of the same corner start together at the corner entry, so you can see who brakes earlier, who carries more angle and who hits the wall. *Ghosts* draws the car every 0.3 s along each pass.
 
-The road is drawn with its real edges, read from the track's AI line (`ai/fast_lane.ai` stores how far the road extends on each side). The Assetto Corsa folder is found in the usual Steam locations, or set `AC_ROOT`. Without it, a band around the driven line is drawn instead.
+The road is drawn with its real edges, read from the track's AI line (`ai/fast_lane.ai` stores how far the road extends on each side). The Assetto Corsa folder is found in the usual Steam locations, or set `AC_ROOT`. Without it, a band around the driven line is drawn instead. Some track mods leave the side distances at zero: the road is then drawn 8 m wide around the AI line, with dashed edges, and impacts are not checked against those edges.
 
 ## Ranking tab
 

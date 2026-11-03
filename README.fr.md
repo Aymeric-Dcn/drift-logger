@@ -30,7 +30,7 @@ La voiture est redessinée vue du dessus : un rectangle avec la vitre claire à 
 - **Onglet Session → Replay** : tout le run avec une caméra qui suit la voiture (orientée selon la route ou carte fixe), une mini-carte, les contours de la voiture juste avant, et en direct vitesse, angle, rapport, pédales et volant. Chaque glisse du tableau a un bouton ▶, et un clic sur les courbes de télémétrie place le replay à cet instant.
 - **Onglet Virages → Rejouer le virage** : jusqu'à trois passages du même virage partent ensemble à l'entrée, pour voir qui freine plus tôt, qui met plus d'angle, qui tape. *Silhouettes* dessine la voiture toutes les 0,3 s.
 
-La route est dessinée avec ses vrais bords, lus dans la ligne IA de la piste (`ai/fast_lane.ai` stocke la largeur de route de chaque côté). Le dossier d'Assetto Corsa est cherché aux emplacements Steam habituels, ou via la variable `AC_ROOT`. Sans lui, une bande autour de la trajectoire est dessinée à la place.
+La route est dessinée avec ses vrais bords, lus dans la ligne IA de la piste (`ai/fast_lane.ai` stocke la largeur de route de chaque côté). Le dossier d'Assetto Corsa est cherché aux emplacements Steam habituels, ou via la variable `AC_ROOT`. Sans lui, une bande autour de la trajectoire est dessinée à la place. Certaines pistes de mods laissent ces largeurs à zéro : la route est alors dessinée sur 8 m autour de la ligne IA, avec des bords en pointillés, et les chocs ne sont pas comparés à ces bords.
 
 ## Onglet Classement
 

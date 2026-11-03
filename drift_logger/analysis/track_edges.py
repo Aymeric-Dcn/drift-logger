@@ -24,6 +24,7 @@ AC_ROOTS = [
     r"E:\SteamLibrary\steamapps\common\assettocorsa",
 ]
 STEP_M = 3.0  # keep one edge point every ~3 m
+FALLBACK_HALF = 4.0  # m each side when the AI line carries no width (some mods leave it at 0)
 
 
 def find_ai(track):
@@ -67,6 +68,9 @@ def edges(track):
     if data is None:
         return None
     x, z, left, right = data
+    est = float(np.median(left + right)) < 2.0
+    if est:
+        left = right = np.full_like(x, FALLBACK_HALF)
     tx, tz = np.gradient(x), np.gradient(z)
     norm = np.hypot(tx, tz)
     norm[norm == 0] = 1
@@ -77,7 +81,7 @@ def edges(track):
     idx = np.r_[np.arange(0, len(x), keep), len(x) - 1]
     r1 = lambda v: np.round(v[idx], 1).tolist()
     return {"l": {"x": r1(x + left * nx), "z": r1(z + left * nz)},
-            "r": {"x": r1(x - right * nx), "z": r1(z - right * nz)}}
+            "r": {"x": r1(x - right * nx), "z": r1(z - right * nz)}, "est": est}
 
 
 def road_key(track):

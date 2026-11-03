@@ -206,7 +206,8 @@ def contact_points(df, events, edges):
         e["cx"], e["cz"] = round(float(best[2][0]), 1), round(float(best[2][1]), 1)
         e["contact"] = best[1]
         e["wall_gap"] = round(best[0], 1)
-        e["no_wall"] = best[0] > 2.0
+        # with an estimated road width the gap to the "edge" means nothing
+        e["no_wall"] = best[0] > 2.0 and not edges.get("est")
 
 
 US_FRONT = 7.0      # deg: front tyres sliding past their grip peak
