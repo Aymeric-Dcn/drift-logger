@@ -53,7 +53,7 @@ Lit la courbe de puissance et le poids de la voiture dans `content/cars/<voiture
 
 L'API Python d'AC ne donne pas le cap de la voiture : il est reconstruit en intégrant la vitesse de lacet, recalée en continu sur la direction de déplacement moins l'angle de dérive (environ 0,4° d'erreur médiane).
 
-Les virages sont détectés à partir de la courbure de la trajectoire (rayon inférieur à 90 m) et numérotés selon leur position le long de la route : un virage garde son numéro d'une session à l'autre. Chaque virage a ses statistiques cumulées (passages, glisses, angle moyen, chocs, tête-à-queue) et un score de difficulté. Dans le dashboard, *Les plus traîtres* classe les virages selon une note de traîtrise sur 100 : le coût moyen d'un passage (tête-à-queue 100, choc 80, glisse ratée 50, touchette en sortie 25, propre 0), réduite pour les virages passés moins de 4 fois. Elle suit les filtres de voiture, de route et de sens.
+Les virages sont détectés à partir de la courbure de la trajectoire (rayon inférieur à 90 m) et numérotés selon leur position le long de la route : un virage garde son numéro d'une session à l'autre. Chaque virage a ses statistiques cumulées (passages, glisses, angle moyen, chocs, tête-à-queue) et un score de difficulté. Dans le dashboard, les virages peuvent être listés dans l'ordre de la route, les plus traîtres d'abord (le plus de passages ratés), ou par *meilleurs drifts* : une note de drift sur 100 faite de 40 % de passages glissés proprement, 30 % du score moyen de ces glisses, 15 % de l'angle moyen (35° = note maximale) et 15 % de la durée moyenne (2,5 s = note maximale). Elle suit les filtres de voiture, de route et de sens.
 
 ## Organisation
 

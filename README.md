@@ -53,7 +53,7 @@ Reads the car's power curve and weight from `content/cars/<car>/ui/ui_car.json` 
 
 AC's Python API has no world heading, so it is rebuilt: the yaw rate is integrated and its slow drift is corrected with the direction of travel minus the slip angle (about 0.4° median error).
 
-Corners are detected from the path's curvature (radius under 90 m) and numbered by their position along the track spline, so a corner keeps its number from one session to the next. Each corner gets cumulative stats (passes, drifts, average angle, impacts, spins) and a trouble score. In the dashboard, *Most treacherous* ranks corners by a treachery score out of 100: the average cost of a pass (spin 100, impact 80, failed drift 50, exit touch 25, clean 0), scaled down for corners with fewer than 4 passes. It follows the car, road and direction filters.
+Corners are detected from the path's curvature (radius under 90 m) and numbered by their position along the track spline, so a corner keeps its number from one session to the next. Each corner gets cumulative stats (passes, drifts, average angle, impacts, spins) and a trouble score. In the dashboard the corners can be listed in road order, most treacherous first (most failed passes), or by *best drifts*: a drift note out of 100 made of 40% passes drifted cleanly, 30% average score of those drifts, 15% average angle (35° = full marks) and 15% average duration (2.5 s = full marks). It follows the car, road and direction filters.
 
 ## Layout
 
