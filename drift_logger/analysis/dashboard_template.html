@@ -453,6 +453,7 @@ footer { font-size: 12px; color: var(--muted); }
       coaching: "Coaching", mapTitle: "La route, virage par virage", thisSession: "Cette session", allSessions: "Toutes les sessions",
       sessionCorners: "Virages de ce run", clickCorner: "Clique pour le détail",
       cornersTitle: "Virages", sortTrouble: "Les plus traîtres", sortOrder: "Dans l'ordre",
+      danger: "traîtrise", dangerNote: "traîtrise /100 = coût moyen d'un passage (tête-à-queue 100, choc 80, glisse ratée 50, touchette en sortie 25, propre 0), réduit sous 4 passages",
       throttleTitle: "Accélérateur en glisse", throttleNote: "Le but : doser entre 40 et 90 %, sans jamais revenir à 0",
       runTitle: "Télémétrie du run", hoverHint: "Survole les courbes pour lire les valeurs", evoTitle: "Évolution d'une session à l'autre",
       driftsTitle: "Les glisses du run", byCar: "Par voiture", byRoad: "Par route",
@@ -594,6 +595,7 @@ footer { font-size: 12px; color: var(--muted); }
       coaching: "Coaching", mapTitle: "The road, corner by corner", thisSession: "This session", allSessions: "All sessions",
       sessionCorners: "Corners in this run", clickCorner: "Click for details",
       cornersTitle: "Corners", sortTrouble: "Most treacherous", sortOrder: "In road order",
+      danger: "treachery", dangerNote: "treachery /100 = average cost of a pass (spin 100, impact 80, failed drift 50, exit touch 25, clean 0), scaled down under 4 passes",
       throttleTitle: "Throttle while drifting", throttleNote: "Goal: modulate between 40 and 90%, never back to 0",
       runTitle: "Run telemetry", hoverHint: "Hover the traces to read values", evoTitle: "Progress from session to session",
       driftsTitle: "Drifts in this run", byCar: "By car", byRoad: "By road",
@@ -1023,6 +1025,15 @@ footer { font-size: 12px; color: var(--muted); }
     } else $("map-legend").innerHTML = `<span>${L().cumulLegend}</span>`;
   }
 
+  /* treachery /100: average cost of a pass (spin 100, impact 80, failed drift 50, exit touch 25, clean 0),
+     scaled down when the corner has fewer than 4 passes in the filtered sessions */
+  const PASS_COST = { spin: 100, impact: 80, exit_touch: 25, clean: 0 };
+  function dangerOf(tr, c) {
+    const a = cornerAttempts(tr, c.id);
+    if (!a.length) return { v: null, n: 0 };
+    const cost = a.reduce((t, x) => t + (x.outcome in PASS_COST ? PASS_COST[x.outcome] : (x.success ? 0 : 50)), 0) / a.length;
+    return { v: Math.round(cost * Math.min(1, a.length / 4)), n: a.length };
+  }
   function cornerRow(c, extra) {
     const st = c.stats || { attempts: 0, success: 0 };
     const b = document.createElement("button"); b.className = "corner"; b.dataset.id = c.id;
@@ -1253,9 +1264,18 @@ footer { font-size: 12px; color: var(--muted); }
     const tr = currentTrack(); if (!tr) return;
     $("corner-count").textContent = L().cornersFound(tr.corners.length);
     const list = tr.corners.slice();
-    if (state.csort === "trouble") list.sort((a, b) => (b.stats.treacherous - a.stats.treacherous) || ((b.stats.attempts - b.stats.success) - (a.stats.attempts - a.stats.success)) || (a.stats.rate ?? 101) - (b.stats.rate ?? 101) || a.id - b.id);
+    const dg = {}; list.forEach(c => { dg[c.id] = dangerOf(tr, c); });
+    if (state.csort === "trouble") {
+      list.sort((a, b) => ((dg[b.id].v ?? -1) - (dg[a.id].v ?? -1)) || a.id - b.id);
+      $("corner-count").textContent += " · " + L().dangerNote;
+    }
     if (state.corner === null || !tr.corners[state.corner - 1]) state.corner = list[0] ? list[0].id : null;
-    list.forEach(c => box.appendChild(cornerRow(c)));
+    list.forEach((c, i) => {
+      const d = dg[c.id], st = c.stats || {}, top = st.reasons && Object.keys(st.reasons).length ? Object.entries(st.reasons).sort((a, b) => b[1] - a[1])[0][0] : null;
+      const why = top ? L().reason[top] : (d.n ? L().passes(d.n) : "");
+      const extra = d.v === null ? why : (state.csort === "trouble" ? `<b>${i + 1}.</b> ` : "") + `${L().danger} <b>${d.v}</b>/100${why ? " · " + why : ""}`;
+      box.appendChild(cornerRow(c, extra));
+    });
   }
   function bar(name, color, value, max, label, title) {
     return `<div class="bar" ${title ? `title="${title}"` : ""}><span class="name"><span class="dot" style="background:${color}"></span>${name}</span><span class="track"><span class="fill" style="display:block;width:${max ? Math.max(2, 100 * value / max) : 0}%;background:${color}"></span></span><span class="val">${label}</span></div>`;
