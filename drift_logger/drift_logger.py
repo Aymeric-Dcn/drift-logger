@@ -1,6 +1,8 @@
 # ==========================================================================
 # Drift Logger - telemetry recorder for Assetto Corsa
 # REC / STOP button: writes one CSV per session to apps/python/drift_logger/logs
+# Coach: before each corner, shows the turn-in speed window and braking point
+# that worked for you before (targets written by analysis/analyse.py)
 # Python 3.3 compatible (Assetto Corsa's embedded interpreter)
 # ==========================================================================
 
@@ -12,12 +14,52 @@ import math
 
 APP_NAME = "Drift Logger"
 LOG_DIR = "apps/python/drift_logger/logs"
+COACH_DIR = "apps/python/drift_logger/coach"
+LANG = "fr"             # "fr" or "en"
+SHOW_FROM_M = 250.0     # start coaching a corner this far before it
+BRAKE_ON = 0.3          # pedal above this = braking (same threshold as the analysis)
+VERDICT_S = 3.5         # how long the verdict stays up
+BRAKE_TOL_M = 15.0      # braking point tolerance before calling it early / late
+BRAKE_WINDOW_M = 150.0  # only braking that starts this close counts for the corner (as in the analysis)
 MAX_HZ = 100.0          # max recording rate
 FLUSH_EVERY = 2.0       # write to disk every 2 s
 
 app_window = 0
 btn_rec = 0
 lbl_status = 0
+btn_coach = 0
+lbl_c1 = lbl_c2 = lbl_c3 = 0
+
+TXT = {
+    "fr": {"kind": {"hairpin": "épingle", "tight": "serré", "fast": "rapide"}, "dir": {"left": "G", "right": "D"},
+           "target": "V%d %s %s · cible %d-%d km/h", "brake_in": "Freine dans %d m", "brake_now": "FREINE",
+           "speed": "%d km/h", "keep": "Garde ~%d %% de frein en tournant", "ok": "Bon : %d km/h",
+           "fast": "Trop vite : +%d km/h", "slow": "Trop lent : -%d km/h", "early": "freinage trop tôt de %d m",
+           "late": "freinage trop tard de %d m", "nobrake": "pas de freinage", "released": "frein relâché avant de tourner",
+           "none": "Coach : pas encore de cibles pour cette voiture ici", "ready": "Coach : %d virages",
+           "on": "COACH", "off": "coach"},
+    "en": {"kind": {"hairpin": "hairpin", "tight": "tight", "fast": "fast"}, "dir": {"left": "L", "right": "R"},
+           "target": "C%d %s %s · target %d-%d km/h", "brake_in": "Brake in %d m", "brake_now": "BRAKE",
+           "speed": "%d km/h", "keep": "Keep ~%d%% brake as you turn in", "ok": "Good: %d km/h",
+           "fast": "Too fast: +%d km/h", "slow": "Too slow: -%d km/h", "early": "braked %d m early",
+           "late": "braked %d m late", "nobrake": "no braking", "released": "brake released before turn-in",
+           "none": "Coach: no targets for this car here yet", "ready": "Coach: %d corners",
+           "on": "COACH", "off": "coach"},
+}
+T = TXT.get(LANG, TXT["en"])
+
+GREEN, ORANGE, BLUE, WHITE, GREY = (0.4, 1, 0.4, 1), (1, 0.6, 0.2, 1), (0.4, 0.7, 1, 1), (1, 1, 1, 1), (0.7, 0.7, 0.7, 1)
+
+coach_on = True
+coach = None            # {"length": metres per unit of track_pos, "corners": [...] sorted by pos0}
+coach_file = ""
+coach_mtime = 0.0
+t_check = 0.0
+nxt = None              # corner being approached
+brake_d = None          # distance to the corner when the last braking started
+was_braking = False
+last_pos = -1.0
+verdict_t = 0.0
 
 recording = False
 log_file = None
@@ -109,13 +151,7 @@ def start_recording():
             os.makedirs(LOG_DIR)
         channels = build_channels()
         car = safe(ac.getCarName(0))
-        track = safe(ac.getTrackName(0))
-        try:
-            cfg = safe(ac.getTrackConfiguration(0))
-            if cfg:
-                track = track + "-" + cfg
-        except Exception:
-            pass
+        track = track_id()
         stamp = time.strftime("%Y%m%d_%H%M%S")
         file_name = "%s_%s_%s.csv" % (stamp, car, track)
         log_file = open(os.path.join(LOG_DIR, file_name), "w")
@@ -147,6 +183,153 @@ def stop_recording():
     ac.setText(lbl_status, "Saved: %d samples (%.0f s)" % (n_samples, t_rec))
 
 
+def track_id():
+    track = safe(ac.getTrackName(0))
+    try:
+        cfg = safe(ac.getTrackConfiguration(0))
+        if cfg:
+            track = track + "-" + cfg
+    except Exception:
+        pass
+    return track
+
+
+def load_coach():
+    """Read the targets written by the analysis for this car on this road."""
+    global coach, coach_file, coach_mtime, nxt, brake_d
+    coach, nxt, brake_d = None, None, None
+    try:
+        coach_file = os.path.join(COACH_DIR, "%s__%s.txt" % (safe(ac.getCarName(0)), track_id()))
+        if not os.path.isfile(coach_file):
+            show(T["none"], "", "", GREY)
+            return
+        coach_mtime = os.path.getmtime(coach_file)
+        length, corners = None, []
+        for line in open(coach_file):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("length_m="):
+                length = float(line.split("=", 1)[1])
+            elif "=" not in line:
+                f = line.split(",")
+                corners.append({"id": int(f[0]), "pos0": float(f[1]), "kind": f[2], "dir": f[3],
+                                "lo": int(f[4]), "hi": int(f[5]), "brake_m": int(f[6]), "brake_in": float(f[7])})
+        if length and corners:
+            corners.sort(key=lambda c: c["pos0"])
+            coach = {"length": length, "corners": corners}
+            show(T["ready"] % len(corners), "", "", GREY)
+        else:
+            show(T["none"], "", "", GREY)
+    except Exception as e:
+        coach = None
+        ac.console("Drift Logger coach: %s" % e)
+
+
+def show(a, b, c, color=WHITE, color2=None):
+    try:
+        ac.setText(lbl_c1, a)
+        ac.setText(lbl_c2, b)
+        ac.setText(lbl_c3, c)
+        ac.setFontColor(lbl_c1, *WHITE)
+        ac.setFontColor(lbl_c2, *(color2 or color))
+        ac.setFontColor(lbl_c3, *color)
+    except Exception:
+        pass
+
+
+def next_corner(pos):
+    for c in coach["corners"]:
+        if c["pos0"] > pos:
+            return c
+    return coach["corners"][0]
+
+
+def judge(c, v, b):
+    """Verdict at the corner start: speed window first, then braking point and trail brake."""
+    if v > c["hi"]:
+        head, col = T["fast"] % (v - c["hi"]), ORANGE
+    elif v < c["lo"]:
+        head, col = T["slow"] % (c["lo"] - v), BLUE
+    else:
+        head, col = T["ok"] % v, GREEN
+    notes = []
+    if c["brake_m"] >= 0:
+        if brake_d is None:
+            notes.append(T["nobrake"])
+        elif brake_d - c["brake_m"] > BRAKE_TOL_M:
+            notes.append(T["early"] % (brake_d - c["brake_m"]))
+        elif c["brake_m"] - brake_d > BRAKE_TOL_M:
+            notes.append(T["late"] % (c["brake_m"] - brake_d))
+    if c["brake_in"] >= 0.15 and b < 0.08 and brake_d is not None:
+        notes.append(T["released"])
+    if notes and col == GREEN:
+        col = ORANGE
+    return head, " · ".join(notes), col
+
+
+def coach_update(dt):
+    global nxt, brake_d, was_braking, last_pos, verdict_t, t_check
+    t_check += dt
+    if t_check > 5.0:  # targets rewritten by a new analysis
+        t_check = 0.0
+        try:
+            if coach_file and os.path.isfile(coach_file) and os.path.getmtime(coach_file) != coach_mtime:
+                load_coach()
+        except Exception:
+            pass
+    if not coach_on or coach is None:
+        return
+    pos = ac.getCarState(0, acsys.CS.NormalizedSplinePosition)
+    v = ac.getCarState(0, acsys.CS.SpeedKMH)
+    b = ac.getCarState(0, acsys.CS.Brake)
+    L = coach["length"]
+    if nxt is None or pos < last_pos - 0.002 or (pos - last_pos) * L > 50:  # start, reset, teleport
+        nxt, brake_d = next_corner(pos), None
+    last_pos = pos
+    d = (nxt["pos0"] - pos) * L
+    if d < -L * 0.5:  # lap wrap
+        d += L
+    verdict_t = max(0.0, verdict_t - dt)
+    if d <= 0:  # corner start reached: judge it
+        head, notes, col = judge(nxt, int(round(v)), b)
+        k = T["kind"].get(nxt["kind"], nxt["kind"])
+        show("V%d %s" % (nxt["id"], k) if LANG == "fr" else "C%d %s" % (nxt["id"], k), head, notes, col, col)
+        verdict_t = VERDICT_S
+        nxt, brake_d = next_corner(pos + 1e-6), None
+        return
+    braking = b > BRAKE_ON
+    if braking and d <= BRAKE_WINDOW_M and (not was_braking or brake_d is None):
+        brake_d = d if not was_braking else BRAKE_WINDOW_M  # already braking when entering the window
+    was_braking = braking
+    if d > SHOW_FROM_M or verdict_t > 0:
+        if verdict_t <= 0 and d > SHOW_FROM_M:
+            show("", "", "")
+        return
+    c = nxt
+    top = T["target"] % (c["id"], T["kind"].get(c["kind"], c["kind"]), T["dir"].get(c["dir"], ""), c["lo"], c["hi"])
+    vi = int(round(v))
+    scol = GREEN if c["lo"] <= vi <= c["hi"] else (ORANGE if vi > c["hi"] else BLUE)
+    if braking or c["brake_m"] < 0:
+        mid = T["speed"] % vi
+    elif d - c["brake_m"] > 0:
+        mid, scol = T["brake_in"] % (d - c["brake_m"]), WHITE
+    else:
+        mid, scol = T["brake_now"], ORANGE
+    low = T["keep"] % int(round(c["brake_in"] * 100)) if c["brake_in"] >= 0.15 else ""
+    show(top, mid, low, GREY, scol)
+
+
+def on_coach(*args):
+    global coach_on
+    coach_on = not coach_on
+    ac.setText(btn_coach, T["on"] if coach_on else T["off"])
+    if not coach_on:
+        show("", "", "")
+    else:
+        load_coach()
+
+
 def on_click(*args):
     if recording:
         stop_recording()
@@ -155,9 +338,9 @@ def on_click(*args):
 
 
 def acMain(ac_version):
-    global app_window, btn_rec, lbl_status
+    global app_window, btn_rec, lbl_status, btn_coach, lbl_c1, lbl_c2, lbl_c3
     app_window = ac.newApp(APP_NAME)
-    ac.setSize(app_window, 260, 90)
+    ac.setSize(app_window, 340, 175)
     ac.setTitle(app_window, APP_NAME)
 
     btn_rec = ac.addButton(app_window, "REC")
@@ -168,11 +351,31 @@ def acMain(ac_version):
     lbl_status = ac.addLabel(app_window, "Ready")
     ac.setPosition(lbl_status, 90, 45)
     ac.setFontSize(lbl_status, 14)
+
+    btn_coach = ac.addButton(app_window, T["on"])
+    ac.setPosition(btn_coach, 260, 35)
+    ac.setSize(btn_coach, 70, 40)
+    ac.addOnClickedListener(btn_coach, on_coach)
+
+    lbl_c1 = ac.addLabel(app_window, "")
+    ac.setPosition(lbl_c1, 10, 85)
+    ac.setFontSize(lbl_c1, 14)
+    lbl_c2 = ac.addLabel(app_window, "")
+    ac.setPosition(lbl_c2, 10, 106)
+    ac.setFontSize(lbl_c2, 24)
+    lbl_c3 = ac.addLabel(app_window, "")
+    ac.setPosition(lbl_c3, 10, 142)
+    ac.setFontSize(lbl_c3, 14)
+    load_coach()
     return APP_NAME
 
 
 def acUpdate(deltaT):
     global t_rec, t_since_sample, t_since_flush, n_samples
+    try:
+        coach_update(deltaT)
+    except Exception as e:
+        ac.console("Drift Logger coach ERROR: %s" % e)
     if not recording or log_file is None:
         return
     t_rec += deltaT

@@ -87,7 +87,13 @@ python build_dashboard.py
 
 5. Open `analysis/dashboard.html` in a browser. The interface switches between French and English.
 
-Coaching notes are read from `analysis/coaching.json` (one entry per session, `fr` and `en` text). Your recorded data (`logs/`, `sessions/`, `tracks/`, `history.json`, `coaching.json`, `dashboard.html`) is ignored by git.
+Coaching notes are read from `analysis/coaching.json` (one entry per session, `fr` and `en` text). Your recorded data (`logs/`, `coach/`, `sessions/`, `tracks/`, `history.json`, `coaching.json`, `dashboard.html`) is ignored by git.
+
+## In-game coach
+
+The Drift Logger window also shows a coach, even when not recording. 250 m before each corner it shows the speed window to hit at the corner start ("C13 hairpin L · target 66-80 km/h"), then "Brake in 40 m" down to the braking point. While braking, your speed is green inside the window, orange when too fast and blue when too slow, with a reminder of how much brake to keep as you turn in. At the corner start a verdict stays up for 3.5 s: "Good: 62 km/h", "Too fast: +8 km/h", "braked 20 m early", "brake released before turn-in"…
+
+Targets come from your own successful drifts, per car and per road. `analyse.py` writes them to `coach/<car>__<road>.txt` and the app reloads them when they change. A corner only gets a target after at least 2 successful drifts: the speed window covers the middle half of those passes, widened by 3 km/h each side (8 km/h minimum). The braking point is the median braking start, if it is under 100 m. The **COACH** button turns the display off and on, and `LANG` at the top of `drift_logger.py` switches the texts to English.
 
 ## Recorded channels
 

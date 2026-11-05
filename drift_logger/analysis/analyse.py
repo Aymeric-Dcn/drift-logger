@@ -28,12 +28,14 @@ import corner_report
 import physics
 import technique
 import track_edges
+import coach_targets
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SESS_DIR = os.path.join(HERE, "sessions")
 TRACK_DIR = os.path.join(HERE, "tracks")
 HISTORY = os.path.join(HERE, "history.json")
 REPORT = os.path.join(HERE, "report.json")
+COACH_DIR = os.path.join(HERE, "..", "coach")  # read by the game app
 
 # --- thresholds ---------------------------------------------------------------
 DRIFT_ANGLE = 12.0        # deg of body slip angle to count as a drift
@@ -576,7 +578,8 @@ def main():
               "by_track": {k: corner_report.overall(t["attempts"]) for k, t in tracks.items()}}
     with open(REPORT, "w") as f:
         json.dump(report, f)
-    print("%d session(s) in history" % len(sessions))
+    n = coach_targets.write_all(sessions, tracks, COACH_DIR)
+    print("%d session(s) in history, coach targets for %d car/road pair(s)" % (len(sessions), n))
 
 
 if __name__ == "__main__":

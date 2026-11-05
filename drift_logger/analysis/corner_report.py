@@ -50,12 +50,18 @@ def corner_passes(session, corners):
             j, bdist = i0, None
             while j > 0 and dist[i0] - dist[j - 1] < 150 and seg[j - 1] == seg[i0]:
                 j -= 1
-            for k in range(j, i0 + 1):
-                if brk[k] > 0.3:
+            # start of the last braking before the corner (it may already be released at the entry)
+            k = i0
+            while k > j and brk[k] <= 0.3:
+                k -= 1
+            if brk[k] > 0.3:
+                while k > j and brk[k - 1] > 0.3:
+                    k -= 1
+                if k > j:  # braking that starts beyond the 150 m window is not this corner's
                     bdist = round(dist[i0] - dist[k], 0)
-                    break
             rec = {"sid": sid, "corner": c["id"], "t": round(ta, 1), "entry": spd[i0],
-                   "min_speed": min(spd[i0:i1 + 1]), "brake_dist": bdist}
+                   "min_speed": min(spd[i0:i1 + 1]), "brake_dist": bdist,
+                   "v_in": spd[i0], "brk_in": round(brk[i0], 2)}  # at the corner start, for the coach
             ds = [d for d in session["drifts"] if d["t0"] <= tb + 0.3 and d["t1"] >= ta - 0.8]
             if ds:
                 d = max(ds, key=lambda d: min(d["t1"], tb) - max(d["t0"], ta))
