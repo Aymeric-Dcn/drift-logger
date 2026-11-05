@@ -21,6 +21,7 @@ BRAKE_ON = 0.3          # pedal above this = braking (same threshold as the anal
 VERDICT_S = 3.5         # how long the verdict stays up
 BRAKE_TOL_M = 15.0      # braking point tolerance before calling it early / late
 BRAKE_WINDOW_M = 150.0  # only braking that starts this close counts for the corner (as in the analysis)
+REACTION_S = 0.3        # added to the braking distance: time to get on the pedal
 MAX_HZ = 100.0          # max recording rate
 FLUSH_EVERY = 2.0       # write to disk every 2 s
 
@@ -57,6 +58,7 @@ coach_mtime = 0.0
 t_check = 0.0
 nxt = None              # corner being approached
 brake_d = None          # distance to the corner when the last braking started
+brake_need = 0.0        # where the braking should have started, given the speed at that moment
 was_braking = False
 last_pos = -1.0
 verdict_t = 0.0
@@ -204,20 +206,22 @@ def load_coach():
             show(T["none"], "", "", GREY)
             return
         coach_mtime = os.path.getmtime(coach_file)
-        length, corners = None, []
+        length, decel, corners = None, 0.5, []
         for line in open(coach_file):
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
             if line.startswith("length_m="):
                 length = float(line.split("=", 1)[1])
+            elif line.startswith("decel_g="):
+                decel = float(line.split("=", 1)[1])
             elif "=" not in line:
                 f = line.split(",")
                 corners.append({"id": int(f[0]), "pos0": float(f[1]), "kind": f[2], "dir": f[3],
                                 "lo": int(f[4]), "hi": int(f[5]), "brake_m": int(f[6]), "brake_in": float(f[7])})
         if length and corners:
             corners.sort(key=lambda c: c["pos0"])
-            coach = {"length": length, "corners": corners}
+            coach = {"length": length, "decel": max(0.2, decel), "corners": corners}
             show(T["ready"] % len(corners), "", "", GREY)
         else:
             show(T["none"], "", "", GREY)
@@ -245,6 +249,17 @@ def next_corner(pos):
     return coach["corners"][0]
 
 
+def brake_point(c, v):
+    """Distance before the corner where braking should start at this speed: the larger of the braking
+    point that worked before and the distance this car needs to get from v down into the window."""
+    vt = (c["lo"] + c["hi"]) / 2.0
+    need = 0.0
+    if v > vt:
+        ms, mt = v / 3.6, vt / 3.6
+        need = (ms * ms - mt * mt) / (2 * 9.81 * coach["decel"]) + ms * REACTION_S
+    return max(float(c["brake_m"]), need) if c["brake_m"] >= 0 else need
+
+
 def judge(c, v, b):
     """Verdict at the corner start: speed window first, then braking point and trail brake."""
     if v > c["hi"]:
@@ -254,13 +269,13 @@ def judge(c, v, b):
     else:
         head, col = T["ok"] % v, GREEN
     notes = []
-    if c["brake_m"] >= 0:
-        if brake_d is None:
+    if brake_d is None:
+        if v > c["hi"]:
             notes.append(T["nobrake"])
-        elif brake_d - c["brake_m"] > BRAKE_TOL_M:
-            notes.append(T["early"] % (brake_d - c["brake_m"]))
-        elif c["brake_m"] - brake_d > BRAKE_TOL_M:
-            notes.append(T["late"] % (c["brake_m"] - brake_d))
+    elif brake_need - brake_d > BRAKE_TOL_M and v > c["hi"]:  # late only matters if it left you too fast
+        notes.append(T["late"] % (brake_need - brake_d))
+    elif brake_d - brake_need > BRAKE_TOL_M and v < c["lo"]:  # early only matters if it cost speed
+        notes.append(T["early"] % (brake_d - brake_need))
     if c["brake_in"] >= 0.15 and b < 0.08 and brake_d is not None:
         notes.append(T["released"])
     if notes and col == GREEN:
@@ -269,7 +284,7 @@ def judge(c, v, b):
 
 
 def coach_update(dt):
-    global nxt, brake_d, was_braking, last_pos, verdict_t, t_check
+    global nxt, brake_d, brake_need, was_braking, last_pos, verdict_t, t_check
     t_check += dt
     if t_check > 5.0:  # targets rewritten by a new analysis
         t_check = 0.0
@@ -299,8 +314,10 @@ def coach_update(dt):
         nxt, brake_d = next_corner(pos + 1e-6), None
         return
     braking = b > BRAKE_ON
+    bp = brake_point(nxt, v)
     if braking and d <= BRAKE_WINDOW_M and (not was_braking or brake_d is None):
         brake_d = d if not was_braking else BRAKE_WINDOW_M  # already braking when entering the window
+        brake_need = bp
     was_braking = braking
     if d > SHOW_FROM_M or verdict_t > 0:
         if verdict_t <= 0 and d > SHOW_FROM_M:
@@ -310,10 +327,10 @@ def coach_update(dt):
     top = T["target"] % (c["id"], T["kind"].get(c["kind"], c["kind"]), T["dir"].get(c["dir"], ""), c["lo"], c["hi"])
     vi = int(round(v))
     scol = GREEN if c["lo"] <= vi <= c["hi"] else (ORANGE if vi > c["hi"] else BLUE)
-    if braking or c["brake_m"] < 0:
+    if braking or bp <= 0:
         mid = T["speed"] % vi
-    elif d - c["brake_m"] > 0:
-        mid, scol = T["brake_in"] % (d - c["brake_m"]), WHITE
+    elif d - bp > 0:
+        mid, scol = T["brake_in"] % (d - bp), WHITE
     else:
         mid, scol = T["brake_now"], ORANGE
     low = T["keep"] % int(round(c["brake_in"] * 100)) if c["brake_in"] >= 0.15 else ""

@@ -18,6 +18,7 @@ MIN_OK = 2          # successful drifts needed before a corner gets a target
 SPEED_PAD = 3.0     # km/h added on each side of the observed window
 MIN_WIDTH = 8.0     # km/h: never narrower than this
 MAX_BRAKE_M = 100   # m: a braking point further out usually belongs to the previous corner
+DECEL_SHARE = 0.7   # share of the car's peak braking g the coach counts on (drift entries aren't threshold stops)
 
 
 def _track_length(tr):
@@ -68,10 +69,13 @@ def write_all(sessions, tracks, out_dir):
             continue
         length = _track_length(tr)
         rows = corner_targets(tr, sids)
+        peaks = [s["summary"].get("gforce", {}).get("max_brake") for s in sessions if s["summary"]["id"] in sids]
+        peaks = [p for p in peaks if p]
+        decel = round(DECEL_SHARE * float(np.median(peaks)), 2) if peaks else 0.5
         if not length or not rows:
             continue
         lines = ["# Drift Logger coach targets: %d session(s), generated %s" % (len(sids), time.strftime("%Y-%m-%d %H:%M")),
-                 "car=%s" % car, "track=%s" % track, "length_m=%.1f" % length,
+                 "car=%s" % car, "track=%s" % track, "length_m=%.1f" % length, "decel_g=%.2f" % decel,
                  "# id,pos0,kind,dir,v_lo,v_hi,brake_m,brake_in,n_ok,n_all"]
         lines += ["%d,%.5f,%s,%s,%d,%d,%d,%.2f,%d,%d" % (r["id"], r["pos0"], r["kind"], r["dir"], r["v_lo"], r["v_hi"],
                                                        r["brake_m"], r["brake_in"], r["n_ok"], r["n_all"]) for r in rows]
