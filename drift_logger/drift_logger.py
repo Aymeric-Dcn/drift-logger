@@ -274,7 +274,8 @@ def judge(c, v, b):
             notes.append(T["nobrake"])
     elif brake_need - brake_d > BRAKE_TOL_M and v > c["hi"]:  # late only matters if it left you too fast
         notes.append(T["late"] % (brake_need - brake_d))
-    elif brake_d - brake_need > BRAKE_TOL_M and v < c["lo"]:  # early only matters if it cost speed
+    elif brake_d < BRAKE_WINDOW_M and brake_d - brake_need > BRAKE_TOL_M and v < c["lo"]:
+        # early only matters if it cost speed (and not when the braking began for the previous corner)
         notes.append(T["early"] % (brake_d - brake_need))
     if c["brake_in"] >= 0.15 and b < 0.08 and brake_d is not None:
         notes.append(T["released"])
